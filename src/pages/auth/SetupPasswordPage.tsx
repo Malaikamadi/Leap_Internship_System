@@ -213,3 +213,4 @@ export const SetupPasswordPage: React.FC = () => {
     </div>
   );
 };
+

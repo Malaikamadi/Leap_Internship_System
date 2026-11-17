@@ -447,3 +447,4 @@ grant execute on function public.admin_provision_staff_account(
 ) to authenticated, service_role;
 
 grant execute on function public.complete_staff_password_setup(text, text) to anon, authenticated, service_role;
+
