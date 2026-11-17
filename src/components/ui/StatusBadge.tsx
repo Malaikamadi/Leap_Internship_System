@@ -1,8 +1,20 @@
 import React from 'react';
-import { ApplicationStatus, PlacementStatus, ReportStatus, CompletionStatus } from '../../types/database';
+import {
+  ApplicationStatus,
+  PlacementStatus,
+  ReportStatus,
+  CompletionStatus,
+  AssessmentStatus,
+} from '../../types/database';
 import { cn } from '../../lib/utils';
 
-type AnyStatus = ApplicationStatus | PlacementStatus | ReportStatus | CompletionStatus | string;
+type AnyStatus =
+  | ApplicationStatus
+  | PlacementStatus
+  | ReportStatus
+  | CompletionStatus
+  | AssessmentStatus
+  | string;
 
 interface StatusBadgeProps {
   status: AnyStatus;
@@ -17,8 +29,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'ACCEPTED':
       case 'CONFIRMED':
       case 'COMPLETED':
+      case 'FINALIZED':
+      case 'OPEN':
+      case 'RESOLVED':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      
+
       case 'SUBMITTED':
       case 'UNDER_REVIEW':
       case 'AWAITING_CONFIRMATION':
@@ -31,18 +46,16 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
 
       case 'REJECTED':
       case 'CANCELLED':
+      case 'NOT_COMPLETED':
       case 'FAILED':
       case 'INCOMPLETE':
+      case 'CLOSED':
         return 'bg-rose-50 text-rose-700 border-rose-200';
 
       case 'DRAFT':
       default:
         return 'bg-slate-100 text-slate-700 border-slate-200';
     }
-  };
-
-  const formatText = (st: string) => {
-    return st.replace(/_/g, ' ');
   };
 
   return (
@@ -54,7 +67,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       )}
     >
       <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-current opacity-70" />
-      {formatText(status)}
+      {status.replace(/_/g, ' ')}
     </span>
   );
 };

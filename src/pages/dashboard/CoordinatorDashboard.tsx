@@ -1,220 +1,315 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  DEMO_APPLICATIONS, 
-  DEMO_PLACEMENTS, 
-  DEMO_HOST_ORGS, 
-  DEMO_AUDIT_LOGS 
-} from '../../lib/mockData';
+import { supabase } from '../../lib/supabase';
+import {
+  CoordinatorSummary,
+  InternshipApplicationRow,
+  ApplicationReviewRow,
+  StudentProfileRow,
+} from '../../types/database';
+import { UserProfile } from '../../types/auth';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
-import { 
-  FileText, 
-  Building2, 
-  Users, 
-  CheckCircle, 
-  Clock, 
-  ShieldCheck
+import { formatDateTime } from '../../lib/utils';
+import {
+  FileText,
+  Building2,
+  Users,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertTriangle,
+  ClipboardList,
+  RefreshCw,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export const CoordinatorDashboard: React.FC = () => {
   const { user } = useAuth();
-  const applications = DEMO_APPLICATIONS;
-  const placements = DEMO_PLACEMENTS;
-  const orgs = DEMO_HOST_ORGS;
-  const audits = DEMO_AUDIT_LOGS;
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<CoordinatorSummary | null>(null);
+  const [recentApps, setRecentApps] = useState<
+    Array<InternshipApplicationRow & { studentName: string; studentNumber: string; programme: string }>
+  >([]);
+  const [recentActivity, setRecentActivity] = useState<ApplicationReviewRow[]>([]);
 
-  const totalApps = applications.length;
-  const pendingReviews = applications.filter((a) => a.application_status === 'UNDER_REVIEW' || a.application_status === 'SUBMITTED').length;
-  const approvedApps = applications.filter((a) => a.application_status === 'APPROVED').length;
-  const awaitingPlacement = applications.filter(
-    (a) => a.application_status === 'APPROVED' && !placements.some((p) => p.application_id === a.id)
-  ).length;
-  const activePlacements = placements.filter((p) => p.status === 'ACTIVE').length;
+  const loadCoordinatorDashboard = useCallback(async () => {
+    setLoading(true);
+
+    const [
+      { data: sumData },
+      { data: appRows },
+      { data: spRows },
+      { data: profRows },
+      { data: revRows },
+    ] = await Promise.all([
+      supabase.rpc('get_coordinator_summary'),
+      supabase
+        .from('internship_applications')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(8),
+      supabase.from('student_profiles').select('*'),
+      supabase.from('profiles').select('*'),
+      supabase
+        .from('application_reviews')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(8),
+    ]);
+
+    setSummary((sumData as CoordinatorSummary) || null);
+
+    const spById = Object.fromEntries(
+      ((spRows || []) as StudentProfileRow[]).map((s) => [s.id, s])
+    );
+    const profById = Object.fromEntries(
+      ((profRows || []) as UserProfile[]).map((p) => [p.id, p])
+    );
+
+    const enrichedApps = ((appRows || []) as InternshipApplicationRow[]).map((a) => {
+      const sp = spById[a.student_id];
+      const prof = sp ? profById[sp.user_id] : undefined;
+      return {
+        ...a,
+        studentName: prof?.full_name || 'Student',
+        studentNumber: sp?.student_number || 'N/A',
+        programme: sp?.programme || 'N/A',
+      };
+    });
+
+    setRecentApps(enrichedApps);
+    setRecentActivity((revRows || []) as ApplicationReviewRow[]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadCoordinatorDashboard();
+  }, [loadCoordinatorDashboard]);
+
+  if (loading) {
+    return (
+      <div className="py-12 text-center text-xs text-slate-500">
+        Loading coordinator dashboard from PostgreSQL...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-bold text-[#002B49]">LEAP Coordinator Command Center</h2>
+          <h2 className="text-xl font-bold text-[#002B49]">LEAP Coordinator Dashboard</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Signed in as {user?.full_name} • Faculty Internship Coordination Office
+            Signed in as {user?.full_name} • Live PostgreSQL Coordination Metrics
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link to="/applications">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={loadCoordinatorDashboard}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+            Refresh
+          </Button>
+          <Link to="/app/coordinator/applications">
             <Button variant="primary" size="sm">
-              Review Submissions ({pendingReviews})
+              Review Applications ({summary?.pending_reviews ?? 0})
             </Button>
           </Link>
-          <Link to="/placements">
-            <Button variant="outline" size="sm">
-              Manage Placements
+          <Link to="/app/coordinator/placements">
+            <Button variant="secondary" size="sm">
+              Assign Placements ({summary?.awaiting_placement ?? 0})
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* KPI Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-subtle">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase">Total Applications</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">{totalApps}</span>
+      {/* 8 Real PostgreSQL KPI Cards required by Section 6 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <Card className="p-4 border-l-4 border-l-[#002B49]">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-slate-500">
+              Total Applications
+            </span>
             <FileText className="h-4 w-4 text-slate-400" />
           </div>
-        </div>
+          <p className="text-2xl font-black text-slate-900 mt-2">
+            {summary?.total_applications ?? 0}
+          </p>
+        </Card>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-subtle border-l-4 border-l-amber-500">
-          <p className="text-[11px] font-semibold text-amber-700 uppercase">Pending Review</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-amber-900">{pendingReviews}</span>
+        <Card className="p-4 border-l-4 border-l-amber-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-amber-700">
+              Pending Reviews
+            </span>
             <Clock className="h-4 w-4 text-amber-600" />
           </div>
-        </div>
+          <p className="text-2xl font-black text-amber-900 mt-2">
+            {summary?.pending_reviews ?? 0}
+          </p>
+        </Card>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-subtle border-l-4 border-l-emerald-500">
-          <p className="text-[11px] font-semibold text-emerald-700 uppercase">Approved</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-emerald-900">{approvedApps}</span>
-            <CheckCircle className="h-4 w-4 text-emerald-600" />
+        <Card className="p-4 border-l-4 border-l-emerald-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-emerald-700">
+              Approved Applications
+            </span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
           </div>
-        </div>
+          <p className="text-2xl font-black text-emerald-900 mt-2">
+            {summary?.approved_applications ?? 0}
+          </p>
+        </Card>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-subtle border-l-4 border-l-blue-500">
-          <p className="text-[11px] font-semibold text-blue-700 uppercase">Awaiting Match</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-blue-900">{awaitingPlacement}</span>
-            <Users className="h-4 w-4 text-blue-600" />
+        <Card className="p-4 border-l-4 border-l-rose-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-rose-700">
+              Rejected Applications
+            </span>
+            <XCircle className="h-4 w-4 text-rose-600" />
           </div>
-        </div>
+          <p className="text-2xl font-black text-rose-900 mt-2">
+            {summary?.rejected_applications ?? 0}
+          </p>
+        </Card>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-subtle border-l-4 border-l-teal-500">
-          <p className="text-[11px] font-semibold text-teal-700 uppercase">Active Placements</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-teal-900">{activePlacements}</span>
+        <Card className="p-4 border-l-4 border-l-blue-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-blue-700">
+              Awaiting Placement
+            </span>
+            <Building2 className="h-4 w-4 text-blue-600" />
+          </div>
+          <p className="text-2xl font-black text-blue-900 mt-2">
+            {summary?.awaiting_placement ?? 0}
+          </p>
+        </Card>
+
+        <Card className="p-4 border-l-4 border-l-teal-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-teal-700">
+              Active Placements
+            </span>
             <Building2 className="h-4 w-4 text-teal-600" />
           </div>
-        </div>
+          <p className="text-2xl font-black text-teal-900 mt-2">
+            {summary?.active_placements ?? 0}
+          </p>
+        </Card>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-subtle">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase">Host Partners</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900">{orgs.length}</span>
-            <Building2 className="h-4 w-4 text-slate-400" />
+        <Card className="p-4 border-l-4 border-l-indigo-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-indigo-700">
+              Unassigned Supervisors
+            </span>
+            <Users className="h-4 w-4 text-indigo-600" />
           </div>
-        </div>
+          <p className="text-2xl font-black text-indigo-900 mt-2">
+            {summary?.unassigned_supervisors ?? 0}
+          </p>
+        </Card>
+
+        <Card className="p-4 border-l-4 border-l-orange-500">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase text-orange-700">
+              Outstanding Reports
+            </span>
+            <ClipboardList className="h-4 w-4 text-orange-600" />
+          </div>
+          <p className="text-2xl font-black text-orange-900 mt-2">
+            {summary?.outstanding_reports ?? 0}
+          </p>
+        </Card>
       </div>
 
-      {/* Main Grid: Pending Reviews Table & Host Organizations */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Student Applications Awaiting Decision */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base flex items-center justify-between">
-              <span>Applications Awaiting Review</span>
-              <span className="text-xs font-normal text-slate-500">Cycle 2026/2027</span>
+            <CardTitle className="text-base">Recent Student Applications</CardTitle>
+            <Link
+              to="/app/coordinator/applications"
+              className="text-xs font-semibold text-teal-700 hover:underline"
+            >
+              Open Full Queue
+            </Link>
+          </CardHeader>
+
+          {recentApps.length === 0 ? (
+            <p className="py-6 text-center text-xs text-slate-500">
+              No student applications found in PostgreSQL.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="px-3 py-2.5">Student</th>
+                    <th className="px-3 py-2.5">Academic Year</th>
+                    <th className="px-3 py-2.5">Industry Preference</th>
+                    <th className="px-3 py-2.5">Status</th>
+                    <th className="px-3 py-2.5 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {recentApps.map((app) => (
+                    <tr key={app.id} className="hover:bg-slate-50">
+                      <td className="px-3 py-3">
+                        <p className="font-bold text-slate-900">{app.studentName}</p>
+                        <p className="text-[11px] text-slate-500">
+                          {app.studentNumber} • {app.programme}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3 font-medium">{app.academic_year}</td>
+                      <td className="px-3 py-3">{app.preferred_industry || 'Any'}</td>
+                      <td className="px-3 py-3">
+                        <StatusBadge status={app.status} />
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <Link to="/app/coordinator/applications">
+                          <Button variant="outline" size="sm">
+                            Inspect
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-teal-600" />
+              <span>Recent Decision Activity</span>
             </CardTitle>
           </CardHeader>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th className="px-3 py-2.5">Student</th>
-                  <th className="px-3 py-2.5">Program</th>
-                  <th className="px-3 py-2.5">Preferred Host</th>
-                  <th className="px-3 py-2.5">Status</th>
-                  <th className="px-3 py-2.5 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {applications.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-3 py-3 font-medium text-slate-900">
-                      <div>{app.student_name}</div>
-                      <div className="text-[10px] text-slate-400">ID: {app.student_id_number}</div>
-                    </td>
-                    <td className="px-3 py-3 text-slate-600 max-w-[140px] truncate">
-                      {app.program_of_study}
-                    </td>
-                    <td className="px-3 py-3 text-slate-700">
-                      {app.preferred_organization_name || 'Open Placement'}
-                    </td>
-                    <td className="px-3 py-3">
-                      <StatusBadge status={app.application_status} />
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <Link to="/applications">
-                        <Button variant="outline" size="sm">
-                          Review
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-
-        {/* Host Capacity & Recent Audit Actions */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-teal-600" />
-                Host Organization Capacity
-              </CardTitle>
-            </CardHeader>
-            <div className="space-y-3">
-              {orgs.map((org) => {
-                const fillPercent = Math.round((org.active_placements_count / org.max_placement_capacity) * 100);
-                return (
-                  <div key={org.id} className="text-xs">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-semibold text-slate-800 truncate max-w-[170px]">{org.name}</span>
-                      <span className="text-slate-500 font-medium">
-                        {org.active_placements_count} / {org.max_placement_capacity} ({fillPercent}%)
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          fillPercent >= 80 ? 'bg-amber-500' : 'bg-teal-600'
-                        }`}
-                        style={{ width: `${fillPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-indigo-600" />
-                Recent System Activity
-              </CardTitle>
-            </CardHeader>
-            <div className="space-y-2.5">
-              {audits.map((a) => (
-                <div key={a.id} className="text-xs border-b border-slate-100 pb-2 last:border-none">
+          {recentActivity.length === 0 ? (
+            <p className="py-6 text-center text-xs text-slate-500">
+              No recent decision activity.
+            </p>
+          ) : (
+            <div className="space-y-3 text-xs">
+              {recentActivity.map((act) => (
+                <div
+                  key={act.id}
+                  className="rounded-lg border border-slate-200 p-3 space-y-1 bg-slate-50/50"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-900">{a.action}</span>
-                    <span className="text-[10px] text-slate-400">Recent</span>
+                    <StatusBadge status={act.to_status} />
+                    <span className="text-[10px] text-slate-400">
+                      {formatDateTime(act.created_at)}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5 truncate">{a.user_email}</p>
+                  {act.comment && <p className="text-slate-600">{act.comment}</p>}
                 </div>
               ))}
             </div>
-          </Card>
-        </div>
+          )}
+        </Card>
       </div>
     </div>
   );
