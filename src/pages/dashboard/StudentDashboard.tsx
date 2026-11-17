@@ -199,8 +199,8 @@ export const StudentDashboard: React.FC = () => {
             {studentProfile && (
               <p className="text-xs sm:text-sm text-slate-200 mt-1">
                 {studentProfile.programme} • {studentProfile.faculty} • Year{' '}
-                {studentProfile.year_of_study} (GPA: {studentProfile.gpa ?? 'N/A'} | Credits:{' '}
-                {studentProfile.credits_completed})
+                {studentProfile.year_of_study}, Semester {studentProfile.semester ?? 8} (GPA:{' '}
+                {studentProfile.gpa ?? 'N/A'} | Credits: {studentProfile.credits_completed})
               </p>
             )}
           </div>

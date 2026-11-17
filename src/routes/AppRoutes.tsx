@@ -8,6 +8,8 @@ import { AppLayout } from '../components/layout/AppLayout';
 // Public Pages
 import { LandingPage } from '../pages/LandingPage';
 import { LoginPage } from '../pages/auth/LoginPage';
+import { RegisterPage } from '../pages/auth/RegisterPage';
+import { SetupPasswordPage } from '../pages/auth/SetupPasswordPage';
 
 // Dashboards
 import { StudentDashboard } from '../pages/dashboard/StudentDashboard';
@@ -61,6 +63,10 @@ export const AppRoutes: React.FC = () => {
 
       {/* Single Login Route */}
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Student Self-Registration & Staff Password Setup Routes */}
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/setup-password" element={<SetupPasswordPage />} />
 
       {/* Protected Workspace Routes */}
       <Route

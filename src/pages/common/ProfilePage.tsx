@@ -212,9 +212,9 @@ export const ProfilePage: React.FC = () => {
                     </p>
                   </div>
                   <div>
-                    <span className="text-slate-500">Year of Study</span>
+                    <span className="text-slate-500">Year & Semester</span>
                     <p className="font-bold text-slate-900 mt-0.5">
-                      Year {studentProfile.year_of_study}
+                      Year {studentProfile.year_of_study} • Sem {studentProfile.semester ?? 8}
                     </p>
                   </div>
                   <div>

@@ -47,6 +47,7 @@ export interface StudentProfileRow {
   faculty: string;
   programme: string;
   year_of_study: number;
+  semester: number;
   gpa: number | null;
   credits_completed: number;
   skills: string | null;
@@ -116,6 +117,8 @@ export interface InternshipApplicationRow {
   academic_year: string;
   preferred_industry: string | null;
   preferred_organization_id: string | null;
+  preferred_host_organization: string | null;
+  preference_reason: string | null;
   motivation: string | null;
   relevant_skills: string | null;
   preferred_start_date: string | null;

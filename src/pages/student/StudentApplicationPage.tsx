@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
   StudentProfileRow,
-  HostOrganizationRow,
   InternshipApplicationRow,
   ApplicationReviewRow,
   EligibilityResult,
@@ -27,7 +26,6 @@ export const StudentApplicationPage: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [studentProfile, setStudentProfile] = useState<StudentProfileRow | null>(null);
-  const [organizations, setOrganizations] = useState<HostOrganizationRow[]>([]);
   const [application, setApplication] = useState<InternshipApplicationRow | null>(null);
   const [reviews, setReviews] = useState<ApplicationReviewRow[]>([]);
   const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
@@ -36,7 +34,8 @@ export const StudentApplicationPage: React.FC = () => {
   const [preferredIndustry, setPreferredIndustry] = useState(
     'Banking & Financial Technology'
   );
-  const [preferredOrganizationId, setPreferredOrganizationId] = useState<string>('');
+  const [preferredHostOrganization, setPreferredHostOrganization] = useState('');
+  const [preferenceReason, setPreferenceReason] = useState('');
   const [motivation, setMotivation] = useState('');
   const [relevantSkills, setRelevantSkills] = useState('');
   const [preferredStartDate, setPreferredStartDate] = useState('2026-12-01');
@@ -51,19 +50,14 @@ export const StudentApplicationPage: React.FC = () => {
     if (!user?.id) return;
     setLoading(true);
 
-    const [{ data: spData }, { data: orgRows }] = await Promise.all([
-      supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase
-        .from('host_organizations')
-        .select('*')
-        .eq('is_active', true)
-        .order('name', { ascending: true }),
-    ]);
+    const { data: spData } = await supabase
+      .from('student_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
     const sp = (spData as StudentProfileRow) || null;
-    const orgList = (orgRows || []) as HostOrganizationRow[];
     setStudentProfile(sp);
-    setOrganizations(orgList);
 
     if (sp) {
       const { data: appRows } = await supabase
@@ -79,7 +73,8 @@ export const StudentApplicationPage: React.FC = () => {
       if (currentApp) {
         setAcademicYear(currentApp.academic_year);
         setPreferredIndustry(currentApp.preferred_industry || '');
-        setPreferredOrganizationId(currentApp.preferred_organization_id || '');
+        setPreferredHostOrganization(currentApp.preferred_host_organization || '');
+        setPreferenceReason(currentApp.preference_reason || '');
         setMotivation(currentApp.motivation || '');
         setRelevantSkills(currentApp.relevant_skills || sp.skills || '');
         setPreferredStartDate(currentApp.preferred_start_date || '2026-12-01');
@@ -99,16 +94,13 @@ export const StudentApplicationPage: React.FC = () => {
         setEligibility((eligData as EligibilityResult) || null);
       } else {
         setRelevantSkills(sp.skills || '');
-        if (orgList.length > 0 && !preferredOrganizationId) {
-          setPreferredOrganizationId(orgList[0].id);
-        }
         setReviews([]);
         setEligibility(null);
       }
     }
 
     setLoading(false);
-  }, [user?.id, preferredOrganizationId]);
+  }, [user?.id]);
 
   useEffect(() => {
     loadData();
@@ -122,17 +114,24 @@ export const StudentApplicationPage: React.FC = () => {
   const handleSaveDraft = async (): Promise<string | null> => {
     setError(null);
     setSuccess(null);
-    setSaving(true);
 
+    if (preferredHostOrganization.trim().length > 200) {
+      setError('Preferred Host Organization must be 200 characters or fewer.');
+      return null;
+    }
+
+    setSaving(true);
     const { data: appId, error: rpcErr } = await supabase.rpc('student_save_application', {
       p_application_id: application?.id || null,
       p_academic_year: academicYear.trim(),
       p_preferred_industry: preferredIndustry.trim(),
-      p_preferred_organization_id: preferredOrganizationId || null,
+      p_preferred_organization_id: null,
       p_motivation: motivation.trim(),
       p_relevant_skills: relevantSkills.trim(),
       p_preferred_start_date: preferredStartDate || null,
       p_preferred_end_date: preferredEndDate || null,
+      p_preferred_host_organization: preferredHostOrganization.trim() || null,
+      p_preference_reason: preferenceReason.trim() || null,
     });
 
     setSaving(false);
@@ -150,6 +149,11 @@ export const StudentApplicationPage: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (preferredHostOrganization.trim().length > 200) {
+      setError('Preferred Host Organization must be 200 characters or fewer.');
+      return;
+    }
 
     if (motivation.trim().length < 100) {
       setError(
@@ -216,8 +220,8 @@ export const StudentApplicationPage: React.FC = () => {
             <p className="font-bold">Coordinator Requested Corrections</p>
             <p>{latestCorrection.comment}</p>
             <p className="text-[11px] text-amber-700">
-              Update the fields below and click &ldquo;Submit Application&rdquo; to resubmit for
-              review.
+              Update the fields below and click &ldquo;Resubmit Corrected Application&rdquo; to
+              resubmit for review.
             </p>
           </div>
         </div>
@@ -288,23 +292,46 @@ export const StudentApplicationPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="app-org" className="block text-xs font-semibold text-slate-700">
-                Preferred Host Organization
-              </label>
-              <select
+              <div className="flex items-center justify-between">
+                <label htmlFor="app-org" className="block text-xs font-semibold text-slate-700">
+                  Preferred Host Organization
+                </label>
+                <span className="text-[11px] text-slate-500">
+                  {preferredHostOrganization.length} / 200 chars
+                </span>
+              </div>
+              <input
                 id="app-org"
+                type="text"
+                maxLength={200}
                 disabled={!canEdit}
-                value={preferredOrganizationId}
-                onChange={(e) => setPreferredOrganizationId(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100"
+                value={preferredHostOrganization}
+                onChange={(e) => setPreferredHostOrganization(e.target.value)}
+                placeholder="e.g. Orange Sierra Leone, Ministry of Health"
+                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Enter any preferred organization name. The LEAP Coordinator reviews your preference
+                and assigns the official placement.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="app-pref-reason"
+                className="block text-xs font-semibold text-slate-700"
               >
-                <option value="">Any Verified Partner Organization</option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name} ({org.industry} — {org.city})
-                  </option>
-                ))}
-              </select>
+                Reason for Choosing This Organization (Optional)
+              </label>
+              <textarea
+                id="app-pref-reason"
+                rows={2}
+                disabled={!canEdit}
+                value={preferenceReason}
+                onChange={(e) => setPreferenceReason(e.target.value)}
+                placeholder="Explain why this organization aligns with your academic programme or career objectives..."
+                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 disabled:bg-slate-100"
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -422,8 +449,10 @@ export const StudentApplicationPage: React.FC = () => {
             {studentProfile ? (
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500">Year of Study</span>
-                  <span className="font-bold text-slate-900">Year {studentProfile.year_of_study}</span>
+                  <span className="text-slate-500">Academic Standing</span>
+                  <span className="font-bold text-slate-900">
+                    Year {studentProfile.year_of_study} • Semester {studentProfile.semester ?? 8}
+                  </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-500">Cumulative GPA</span>
@@ -513,4 +542,3 @@ export const StudentApplicationPage: React.FC = () => {
     </div>
   );
 };
-

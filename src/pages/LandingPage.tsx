@@ -15,6 +15,7 @@ import {
   FileText,
   Lock,
   Globe,
+  UserPlus,
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
@@ -27,7 +28,7 @@ export const LandingPage: React.FC = () => {
       title: 'Application & Eligibility Review',
       processRef: 'DFD Process 1.0',
       description:
-        'Students complete their academic profile and submit an internship application. The LEAP Coordinator verifies credit hours, GPA thresholds, and programme readiness.',
+        'Students register, complete their academic profile, and submit an internship application. The LEAP Coordinator verifies credit hours, GPA thresholds, and programme readiness.',
       icon: FileText,
     },
     {
@@ -61,13 +62,13 @@ export const LandingPage: React.FC = () => {
       role: 'Student',
       icon: GraduationCap,
       summary:
-        'Manage academic profile, draft and submit internship applications, respond to coordinator corrections, log periodic progress reports, and track completion status.',
+        'Register student account, manage academic profile, draft and submit internship applications with preferred host organization, log progress reports, and track completion status.',
     },
     {
       role: 'LEAP Coordinator',
       icon: ClipboardCheck,
       summary:
-        'Verify student eligibility, approve or return applications, manage host partner opportunities, allocate placements and academic supervisors, and monitor compliance.',
+        'Verify student eligibility, review student organization preferences, approve or return applications, manage host partner opportunities, and assign placements and supervisors.',
     },
     {
       role: 'Academic Supervisor',
@@ -91,7 +92,7 @@ export const LandingPage: React.FC = () => {
       role: 'System Administrator',
       icon: ShieldCheck,
       summary:
-        'Provision and manage user accounts, assign or revoke system roles, configure university policy thresholds, and audit security logs.',
+        'Provision staff accounts, manage roles and account status, configure university policy thresholds, and audit security logs.',
     },
   ];
 
@@ -128,7 +129,7 @@ export const LandingPage: React.FC = () => {
             </a>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {isAuthenticated && activeRole ? (
               <Link
                 to={portalTarget}
@@ -138,13 +139,22 @@ export const LandingPage: React.FC = () => {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#002B49] px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#001f35] transition-colors"
-              >
-                <span>Staff & Student Login</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <>
+                <Link
+                  to="/register"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-[#002B49] hover:bg-slate-50 transition-colors"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  <span>Create Student Account</span>
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#002B49] px-5 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#001f35] transition-colors"
+                >
+                  <span>Sign In</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -179,12 +189,15 @@ export const LandingPage: React.FC = () => {
                   <span>{isAuthenticated ? 'Continue to Dashboard' : 'Sign In to Portal'}</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <a
-                  href="#how-it-works"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  Explore Workflow
-                </a>
+                {!isAuthenticated && (
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center gap-2 rounded-xl border border-teal-600 bg-teal-600 px-6 py-3.5 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span>Create Student Account</span>
+                  </Link>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200">
@@ -266,13 +279,20 @@ export const LandingPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                   <Link
                     to="/login"
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-teal-700 transition-colors"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-[#002B49] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#001f35] transition-colors"
                   >
-                    <span>Access Demonstration Accounts</span>
+                    <span>Sign In</span>
                     <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 transition-colors"
+                  >
+                    <UserPlus className="h-4 w-4 text-teal-600" />
+                    <span>Create Student Account</span>
                   </Link>
                 </div>
               </div>
@@ -424,20 +444,29 @@ export const LandingPage: React.FC = () => {
           <div className="mt-12 rounded-2xl bg-[#002B49] p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
               <h3 className="text-lg sm:text-xl font-bold">
-                Ready to access the Digital LEAP Internship Management System?
+                Ready to begin your LEAP internship journey?
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                Sign in with your university or host organization account to manage applications,
-                placements, reports, and evaluations.
+                Undergraduate students can register an account online; university staff and host
+                representatives sign in with their provisioned credentials.
               </p>
             </div>
-            <Link
-              to="/login"
-              className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3 text-xs sm:text-sm font-bold text-slate-950 hover:bg-teal-400 transition-colors"
-            >
-              <span>Proceed to Login</span>
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-xs sm:text-sm font-bold text-slate-950 hover:bg-teal-400 transition-colors"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Create Student Account</span>
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-xs sm:text-sm font-bold text-white hover:bg-white/20 transition-colors"
+              >
+                <span>Sign In</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -461,14 +490,15 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-6 text-xs">
+            <Link to="/register" className="text-slate-300 hover:text-white transition-colors">
+              Create Student Account
+            </Link>
             <Link to="/login" className="text-slate-300 hover:text-white transition-colors">
               Portal Login
             </Link>
-            <span>COMP 217 Academic Demonstration</span>
           </div>
         </div>
       </footer>
     </div>
   );
 };
-

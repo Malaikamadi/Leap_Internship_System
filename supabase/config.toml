@@ -165,7 +165,7 @@ site_url = "http://localhost:5173"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:5173/reset-password", "http://127.0.0.1:5173/reset-password"]
+additional_redirect_urls = ["http://localhost:5173/reset-password", "http://localhost:5173/setup-password", "http://localhost:5173/login", "http://127.0.0.1:5173/reset-password", "http://127.0.0.1:5173/setup-password", "http://127.0.0.1:5173/login"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -177,10 +177,9 @@ enable_refresh_token_rotation = true
 # Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
-# Allow/disallow new user signups to your project. Existing users can still sign in.
-# Public self-registration is disabled during the demo phase. Accounts are provisioned by
-# scripts/seed-demo.mjs (service role, server-side only) or by the admin-provision-user Edge Function.
-enable_signup = false
+# Allow student self-registration via Supabase Auth; handle_new_auth_user trigger strictly assigns
+# only the 'student' role and rejects duplicate student IDs. Staff accounts are provisioned by Admin.
+enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts

@@ -293,7 +293,8 @@ export const CoordinatorPlacementsPage: React.FC = () => {
                   const up = sp ? profById[sp.user_id] : undefined;
                   return (
                     <option key={app.id} value={app.id}>
-                      {up?.full_name || 'Student'} ({sp?.student_number}) — {app.academic_year}
+                      {up?.full_name || 'Student'} ({sp?.student_number}) — Pref:{' '}
+                      {app.preferred_host_organization || app.preferred_industry || 'Open'}
                     </option>
                   );
                 })}

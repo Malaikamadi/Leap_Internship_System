@@ -177,7 +177,8 @@ export const CoordinatorApplicationsPage: React.FC = () => {
       const name = a.userProfile?.full_name?.toLowerCase() || '';
       const num = a.studentProfile?.student_number?.toLowerCase() || '';
       const ind = a.preferred_industry?.toLowerCase() || '';
-      return name.includes(q) || num.includes(q) || ind.includes(q);
+      const prefOrg = (a.preferred_host_organization || a.preferredOrgName || '').toLowerCase();
+      return name.includes(q) || num.includes(q) || ind.includes(q) || prefOrg.includes(q);
     }
     return true;
   });
@@ -293,7 +294,10 @@ export const CoordinatorApplicationsPage: React.FC = () => {
                         {app.studentProfile?.student_number} • {app.academic_year}
                       </p>
                       <p className="text-slate-600 truncate">
-                        {app.preferredOrgName || app.preferred_industry || 'Open Preference'}
+                        {app.preferred_host_organization ||
+                          app.preferredOrgName ||
+                          app.preferred_industry ||
+                          'Open Preference'}
                       </p>
                     </div>
                   );
@@ -362,9 +366,14 @@ export const CoordinatorApplicationsPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="rounded-lg border border-slate-200 p-3">
-                      <span className="text-slate-500">Preferred Organization</span>
+                      <span className="text-slate-500">Preferred Host Organization</span>
                       <p className="font-semibold text-slate-900 mt-0.5">
-                        {selectedApp.preferredOrgName || 'Any Partner Organization'}
+                        {selectedApp.preferred_host_organization ||
+                          selectedApp.preferredOrgName ||
+                          'Any Partner Organization'}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Industry: {selectedApp.preferred_industry || 'Not specified'}
                       </p>
                     </div>
                     <div className="rounded-lg border border-slate-200 p-3">
@@ -375,6 +384,17 @@ export const CoordinatorApplicationsPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  {selectedApp.preference_reason && (
+                    <div className="rounded-lg border border-slate-200 p-3 bg-slate-50/60">
+                      <span className="font-semibold text-slate-700">
+                        Reason for Choosing This Organization
+                      </span>
+                      <p className="text-slate-600 mt-1 whitespace-pre-line">
+                        {selectedApp.preference_reason}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="rounded-lg border border-slate-200 p-3">
                     <span className="font-semibold text-slate-700">Relevant Skills</span>
