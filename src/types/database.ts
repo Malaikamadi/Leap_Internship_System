@@ -40,9 +40,45 @@ export interface UserRoleRow {
   granted_at: string;
 }
 
+export type EnrollmentStatus =
+  | 'ENROLLED'
+  | 'ON_LEAVE'
+  | 'SUSPENDED'
+  | 'GRADUATED'
+  | 'WITHDRAWN';
+
+export interface StudentRegistryRecord {
+  id: string;
+  student_number: string;
+  institutional_email: string;
+  full_name: string;
+  faculty: string;
+  programme: string;
+  year_of_study: number;
+  semester: number;
+  gpa: number;
+  credits_completed: number;
+  enrollment_status: EnrollmentStatus;
+  academic_year: string;
+  claimed_by_user_id: string | null;
+  claimed_at: string | null;
+  last_email_correction_reason: string | null;
+  verification_state: 'CLAIMED' | 'PENDING_EMAIL_CONFIRMATION' | 'UNCLAIMED';
+}
+
+export interface StudentRegistryCandidateResult {
+  ok: boolean;
+  verified_candidate?: boolean;
+  student_number?: string;
+  rate_limited?: boolean;
+  error?: string;
+}
+
 export interface StudentProfileRow {
   id: string;
   user_id: string;
+  registry_id?: string;
+  registry_verified_at?: string;
   student_number: string;
   faculty: string;
   programme: string;

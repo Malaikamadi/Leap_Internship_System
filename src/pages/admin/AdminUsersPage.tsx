@@ -3,7 +3,12 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { AppRole, ROLE_LABELS, UserProfile } from '../../types/auth';
-import { HostOrganizationRow, UserRoleRow } from '../../types/database';
+import {
+  EnrollmentStatus,
+  HostOrganizationRow,
+  StudentRegistryRecord,
+  UserRoleRow,
+} from '../../types/database';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import {
@@ -16,6 +21,8 @@ import {
   AlertCircle,
   UserPlus,
   Link2,
+  GraduationCap,
+  MailCheck,
 } from 'lucide-react';
 
 const ALL_ROLES: AppRole[] = [
@@ -50,6 +57,7 @@ export const AdminUsersPage: React.FC = () => {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [userRoles, setUserRoles] = useState<UserRoleRow[]>([]);
   const [organizations, setOrganizations] = useState<HostOrganizationRow[]>([]);
+  const [registryRecords, setRegistryRecords] = useState<StudentRegistryRecord[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleSelections, setRoleSelections] = useState<Record<string, AppRole>>({});
 
@@ -69,23 +77,46 @@ export const AdminUsersPage: React.FC = () => {
   const [provJobTitle, setProvJobTitle] = useState('');
   const [provisionedInvite, setProvisionedInvite] = useState<ProvisionResult | null>(null);
 
+  // University Student Registry Upsert & Email Recovery state
+  const [regStudentId, setRegStudentId] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regFullName, setRegFullName] = useState('');
+  const [regFaculty, setRegFaculty] = useState(
+    'Faculty of Information & Communication Technology'
+  );
+  const [regProgramme, setRegProgramme] = useState(
+    'BSc (Hons) in Software Engineering with Multimedia'
+  );
+  const [regYear, setRegYear] = useState<number>(4);
+  const [regSemester, setRegSemester] = useState<number>(8);
+  const [regGpa, setRegGpa] = useState<number>(3.5);
+  const [regCredits, setRegCredits] = useState<number>(90);
+  const [regStatus, setRegStatus] = useState<EnrollmentStatus>('ENROLLED');
+
+  const [corrStudentId, setCorrStudentId] = useState('');
+  const [corrNewEmail, setCorrNewEmail] = useState('');
+  const [corrReason, setCorrReason] = useState('');
+
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    const [{ data: profRows }, { data: roleRows }, { data: orgRows }] = await Promise.all([
-      supabase.from('profiles').select('*').order('full_name', { ascending: true }),
-      supabase.from('user_roles').select('*'),
-      supabase.from('host_organizations').select('*').order('name', { ascending: true }),
-    ]);
+    const [{ data: profRows }, { data: roleRows }, { data: orgRows }, { data: regData }] =
+      await Promise.all([
+        supabase.from('profiles').select('*').order('full_name', { ascending: true }),
+        supabase.from('user_roles').select('*'),
+        supabase.from('host_organizations').select('*').order('name', { ascending: true }),
+        supabase.rpc('admin_list_student_registry', { p_search: null }),
+      ]);
 
     const profList = (profRows || []) as UserProfile[];
     const orgList = (orgRows || []) as HostOrganizationRow[];
     setProfiles(profList);
     setUserRoles((roleRows || []) as UserRoleRow[]);
     setOrganizations(orgList);
+    setRegistryRecords((regData as StudentRegistryRecord[]) || []);
 
     if (orgList.length > 0 && !provOrgId) {
       setProvOrgId(orgList[0].id);
@@ -147,6 +178,68 @@ export const AdminUsersPage: React.FC = () => {
     setSuccess(
       `Provisioned ${ROLE_LABELS[res.role]} account for ${res.email}. A secure password-setup invitation link has been generated.`
     );
+  };
+
+  const handleUpsertRegistryRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setProcessing(true);
+
+    const { error: rpcErr } = await supabase.rpc('admin_upsert_student_registry_batch', {
+      p_records: [
+        {
+          student_number: regStudentId.trim().toUpperCase(),
+          institutional_email: regEmail.trim().toLowerCase(),
+          full_name: regFullName.trim(),
+          faculty: regFaculty.trim(),
+          programme: regProgramme.trim(),
+          year_of_study: Number(regYear),
+          semester: Number(regSemester),
+          gpa: Number(regGpa),
+          credits_completed: Number(regCredits),
+          enrollment_status: regStatus,
+          academic_year: '2025/2026',
+        },
+      ],
+    });
+
+    setProcessing(false);
+    if (rpcErr) {
+      setError(rpcErr.message);
+      return;
+    }
+
+    setRegStudentId('');
+    setRegEmail('');
+    setRegFullName('');
+    await loadUsers();
+    setSuccess('University Student Registry record upserted and synchronized.');
+  };
+
+  const handleCorrectRegistryEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setProcessing(true);
+
+    const { error: rpcErr } = await supabase.rpc('admin_correct_registry_student_email', {
+      p_student_number: corrStudentId.trim().toUpperCase(),
+      p_new_email: corrNewEmail.trim().toLowerCase(),
+      p_reason: corrReason.trim(),
+    });
+
+    setProcessing(false);
+    if (rpcErr) {
+      setError(rpcErr.message);
+      return;
+    }
+
+    setCorrStudentId('');
+    setCorrNewEmail('');
+    setCorrReason('');
+    await loadUsers();
+    setSuccess('Unclaimed student registry email updated and logged in the system audit trail.');
   };
 
   const handleToggleActive = async (targetUser: UserProfile) => {
@@ -233,11 +326,11 @@ export const AdminUsersPage: React.FC = () => {
     <div className="space-y-6">
       <div className="pb-3 border-b border-slate-200">
         <h2 className="text-xl font-bold text-[#002B49]">
-          Staff Account Provisioning & Role-Based Access Management
+          Staff Account Provisioning, Student Registry & Role-Based Access Management
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Provision staff accounts with secure password-setup invitations, manage roles, and
-          activate or deactivate user access
+          Provision staff accounts with secure password-setup invitations, manage the protected
+          University Student Registry, and control role-based user access
         </p>
       </div>
 
@@ -479,6 +572,311 @@ export const AdminUsersPage: React.FC = () => {
             </p>
           </div>
         )}
+      </Card>
+
+      {/* Protected University Student Registry Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-teal-600" />
+            <span>
+              Protected University Student Registry ({registryRecords.length} Enrolled Records)
+            </span>
+          </CardTitle>
+        </CardHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+          {/* Upsert Registrar Student Record */}
+          <form
+            onSubmit={handleUpsertRegistryRecord}
+            className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs"
+          >
+            <p className="font-bold text-[#002B49]">
+              Add / Sync Official Student Registry Record
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label htmlFor="reg-stu-id" className="block font-semibold text-slate-700">
+                  Student ID *
+                </label>
+                <input
+                  id="reg-stu-id"
+                  type="text"
+                  required
+                  value={regStudentId}
+                  onChange={(e) => setRegStudentId(e.target.value)}
+                  placeholder="LUCT-SL-2024-0901"
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 uppercase"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-email" className="block font-semibold text-slate-700">
+                  Institutional Email *
+                </label>
+                <input
+                  id="reg-stu-email"
+                  type="email"
+                  required
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  placeholder="student@student.limkokwing.edu.sl"
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-name" className="block font-semibold text-slate-700">
+                  Full Name *
+                </label>
+                <input
+                  id="reg-stu-name"
+                  type="text"
+                  required
+                  value={regFullName}
+                  onChange={(e) => setRegFullName(e.target.value)}
+                  placeholder="Mariama Conteh"
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label htmlFor="reg-stu-faculty" className="block font-semibold text-slate-700">
+                  Faculty *
+                </label>
+                <input
+                  id="reg-stu-faculty"
+                  type="text"
+                  required
+                  value={regFaculty}
+                  onChange={(e) => setRegFaculty(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-prog" className="block font-semibold text-slate-700">
+                  Programme *
+                </label>
+                <input
+                  id="reg-stu-prog"
+                  type="text"
+                  required
+                  value={regProgramme}
+                  onChange={(e) => setRegProgramme(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div>
+                <label htmlFor="reg-stu-year" className="block font-semibold text-slate-700">
+                  Year
+                </label>
+                <input
+                  id="reg-stu-year"
+                  type="number"
+                  min={1}
+                  max={6}
+                  value={regYear}
+                  onChange={(e) => setRegYear(Number(e.target.value))}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-1"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-sem" className="block font-semibold text-slate-700">
+                  Semester
+                </label>
+                <input
+                  id="reg-stu-sem"
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={regSemester}
+                  onChange={(e) => setRegSemester(Number(e.target.value))}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-1"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-gpa" className="block font-semibold text-slate-700">
+                  GPA
+                </label>
+                <input
+                  id="reg-stu-gpa"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  max={4}
+                  value={regGpa}
+                  onChange={(e) => setRegGpa(Number(e.target.value))}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-1"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-credits" className="block font-semibold text-slate-700">
+                  Credits
+                </label>
+                <input
+                  id="reg-stu-credits"
+                  type="number"
+                  min={0}
+                  value={regCredits}
+                  onChange={(e) => setRegCredits(Number(e.target.value))}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-1"
+                />
+              </div>
+              <div>
+                <label htmlFor="reg-stu-status" className="block font-semibold text-slate-700">
+                  Status
+                </label>
+                <select
+                  id="reg-stu-status"
+                  value={regStatus}
+                  onChange={(e) => setRegStatus(e.target.value as EnrollmentStatus)}
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2 py-1"
+                >
+                  <option value="ENROLLED">ENROLLED</option>
+                  <option value="ON_LEAVE">ON_LEAVE</option>
+                  <option value="SUSPENDED">SUSPENDED</option>
+                  <option value="GRADUATED">GRADUATED</option>
+                  <option value="WITHDRAWN">WITHDRAWN</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <Button type="submit" variant="primary" size="sm" isLoading={processing}>
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                <span>Upsert Registry Student</span>
+              </Button>
+            </div>
+          </form>
+
+          {/* Registry Email Recovery Form */}
+          <form
+            onSubmit={handleCorrectRegistryEmail}
+            className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs flex flex-col justify-between"
+          >
+            <div className="space-y-3">
+              <p className="font-bold text-[#002B49] flex items-center gap-1.5">
+                <MailCheck className="h-4 w-4 text-teal-700" />
+                <span>Unclaimed Registry Email Correction (Registrar Recovery)</span>
+              </p>
+              <p className="text-[11px] text-slate-500">
+                If an official registry record contains a mistyped institutional email before a
+                student has claimed their account, update it here with an audited reason.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label htmlFor="corr-stu-id" className="block font-semibold text-slate-700">
+                    Unclaimed Student ID *
+                  </label>
+                  <input
+                    id="corr-stu-id"
+                    type="text"
+                    required
+                    value={corrStudentId}
+                    onChange={(e) => setCorrStudentId(e.target.value)}
+                    placeholder="LUCT-SL-2024-0901"
+                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 uppercase"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="corr-new-email" className="block font-semibold text-slate-700">
+                    Corrected University Email *
+                  </label>
+                  <input
+                    id="corr-new-email"
+                    type="email"
+                    required
+                    value={corrNewEmail}
+                    onChange={(e) => setCorrNewEmail(e.target.value)}
+                    placeholder="corrected@student.limkokwing.edu.sl"
+                    className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="corr-reason" className="block font-semibold text-slate-700">
+                  Audit Reason *
+                </label>
+                <input
+                  id="corr-reason"
+                  type="text"
+                  required
+                  value={corrReason}
+                  onChange={(e) => setCorrReason(e.target.value)}
+                  placeholder="Verified student ID card at Registrar desk; corrected email typo"
+                  className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button type="submit" variant="outline" size="sm" isLoading={processing}>
+                <span>Correct Registry Email</span>
+              </Button>
+            </div>
+          </form>
+        </div>
+
+        {/* Registry Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+              <tr>
+                <th className="px-3 py-2">Student ID</th>
+                <th className="px-3 py-2">Full Name & Institutional Email</th>
+                <th className="px-3 py-2">Programme & Standing</th>
+                <th className="px-3 py-2">Enrollment</th>
+                <th className="px-3 py-2">Verification Claim State</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {registryRecords.map((rec) => (
+                <tr key={rec.id} className="hover:bg-slate-50">
+                  <td className="px-3 py-2.5 font-mono font-bold text-[#002B49]">
+                    {rec.student_number}
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <p className="font-bold text-slate-900">{rec.full_name}</p>
+                    <p className="text-[11px] font-mono text-slate-500">
+                      {rec.institutional_email}
+                    </p>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <p className="font-medium text-slate-800">{rec.programme}</p>
+                    <p className="text-[11px] text-slate-500">
+                      Year {rec.year_of_study}, Sem {rec.semester} • GPA {Number(rec.gpa).toFixed(2)}{' '}
+                      • {rec.credits_completed} Credits
+                    </p>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <span className="inline-flex rounded bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-800">
+                      {rec.enrollment_status}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {rec.verification_state === 'CLAIMED' ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Claimed & Active
+                      </span>
+                    ) : rec.verification_state === 'PENDING_EMAIL_CONFIRMATION' ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        Pending Email Confirmation
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+                        Unclaimed (Ready for Signup)
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <div className="relative max-w-md">

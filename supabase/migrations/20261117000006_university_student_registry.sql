@@ -713,7 +713,9 @@ declare
   v_term text := nullif(lower(trim(coalesce(p_search, ''))), '');
   v_result jsonb;
 begin
-  perform private.require_staff();
+  if not private.is_staff() then
+    raise exception 'Permission denied: coordinator or admin role required' using errcode = '42501';
+  end if;
 
   select coalesce(
     jsonb_agg(
@@ -782,7 +784,7 @@ declare
   v_academic_year text;
   v_reg private.university_student_registry;
 begin
-  perform private.require_role(array['admin']::public.app_role[]);
+  perform private.require_role('admin'::public.app_role);
 
   if p_records is null or jsonb_typeof(p_records) <> 'array' then
     raise exception 'p_records must be a JSON array of registry objects' using errcode = 'P0001';
@@ -876,7 +878,7 @@ declare
   v_old_email text;
   v_reg private.university_student_registry;
 begin
-  perform private.require_role(array['admin']::public.app_role[]);
+  perform private.require_role('admin'::public.app_role);
 
   if char_length(v_reason) < 5 then
     raise exception 'Please provide an audit reason of at least 5 characters for the registry email correction.'

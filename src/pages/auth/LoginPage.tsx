@@ -35,6 +35,31 @@ export const LoginPage: React.FC = () => {
   );
   const [recoveryMode, setRecoveryMode] = useState(false);
   const [recoverySent, setRecoverySent] = useState<string | null>(null);
+  const [resendingConfirm, setResendingConfirm] = useState(false);
+
+  const handleResendConfirmation = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed) {
+      setError('Enter your university email address above to resend the verification email.');
+      return;
+    }
+    setResendingConfirm(true);
+    setError(null);
+    await supabase.rpc('refresh_student_verification_expiry', { p_email: trimmed });
+    const { error: resendErr } = await supabase.auth.resend({
+      type: 'signup',
+      email: trimmed,
+      options: { emailRedirectTo: `${window.location.origin}/login` },
+    });
+    setResendingConfirm(false);
+    if (resendErr) {
+      setError(resendErr.message);
+      return;
+    }
+    setInfoBanner(
+      `A fresh email verification link has been sent to ${trimmed}. Please confirm your email before signing in.`
+    );
+  };
 
   useEffect(() => {
     if (isAuthenticated && activeRole) {
@@ -136,10 +161,23 @@ export const LoginPage: React.FC = () => {
           {(error || authError) && (
             <div
               role="alert"
-              className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700 flex items-start gap-2 border border-rose-200"
+              className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700 space-y-2 border border-rose-200"
             >
-              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{error || authError}</span>
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{error || authError}</span>
+              </div>
+              {((error || authError || '').toLowerCase().includes('email not confirmed') ||
+                (error || authError || '').toLowerCase().includes('verification')) && (
+                <button
+                  type="button"
+                  disabled={resendingConfirm}
+                  onClick={handleResendConfirmation}
+                  className="text-[11px] font-bold text-teal-800 underline hover:text-[#002B49]"
+                >
+                  {resendingConfirm ? 'Sending verification email...' : 'Resend Verification Email'}
+                </button>
+              )}
             </div>
           )}
 

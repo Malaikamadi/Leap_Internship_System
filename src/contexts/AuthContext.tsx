@@ -69,6 +69,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(activeSession);
     const uid = activeSession.user.id;
 
+    if (!activeSession.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setRoles([]);
+      setActiveRoleState(null);
+      setAuthError(
+        'Email not confirmed. Please click the verification link sent to your university email before signing in.'
+      );
+      setIsLoading(false);
+      return { profile: null, assignedRoles: [] as AppRole[] };
+    }
+
     const [{ data: profileData, error: profileErr }, { data: roleRows, error: rolesErr }] =
       await Promise.all([
         supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),

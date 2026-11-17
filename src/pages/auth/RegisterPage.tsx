@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { StudentRegistryCandidateResult } from '../../types/database';
 import { Button } from '../../components/ui/Button';
 import {
   User,
@@ -11,6 +12,8 @@ import {
   CheckCircle2,
   ArrowLeft,
   ArrowRight,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
@@ -19,25 +22,23 @@ export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [email, setEmail] = useState('');
-  const [faculty, setFaculty] = useState(
-    'Faculty of Information & Communication Technology'
-  );
-  const [programme, setProgramme] = useState(
-    'BSc (Hons) in Software Engineering with Multimedia'
-  );
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resendInfo, setResendInfo] = useState<string | null>(null);
   const [registeredComplete, setRegisteredComplete] = useState(false);
+  const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setResendInfo(null);
 
     const trimmedName = fullName.trim();
-    const trimmedStudentId = studentId.trim();
+    const trimmedStudentId = studentId.trim().toUpperCase();
     const trimmedEmail = email.trim().toLowerCase();
 
     if (trimmedName.length < 2) {
@@ -63,25 +64,35 @@ export const RegisterPage: React.FC = () => {
 
     setSubmitting(true);
 
-    // 1. Pre-check duplicate Student ID in PostgreSQL
-    const { data: idAvailable, error: checkErr } = await supabase.rpc(
-      'check_student_id_available',
-      { p_student_number: trimmedStudentId }
+    // 1. Pre-check Student ID + institutional email against the protected University Student Registry
+    const { data: candidateData, error: checkErr } = await supabase.rpc(
+      'verify_student_registration_candidate',
+      {
+        p_student_number: trimmedStudentId,
+        p_email: trimmedEmail,
+      }
     );
+
     if (checkErr) {
       setSubmitting(false);
       setError(checkErr.message);
       return;
     }
-    if (!idAvailable) {
+
+    const candidate = candidateData as StudentRegistryCandidateResult | null;
+    if (!candidate || !candidate.ok) {
       setSubmitting(false);
-      setError(`Student ID "${trimmedStudentId}" is already registered.`);
+      setError(
+        candidate?.error ||
+          'We could not verify that Student ID and university email combination against active Limkokwing enrollment records.'
+      );
       return;
     }
 
     // 2. Create account via Supabase Auth.
-    // The server-side handle_new_auth_user trigger automatically assigns ONLY the
-    // 'student' role in public.user_roles and creates public.student_profiles.
+    // The database trigger validates against private.university_student_registry,
+    // populates academic attributes strictly from the official registry, and activates
+    // ONLY the 'student' role once email confirmation succeeds.
     const { data, error: signUpErr } = await supabase.auth.signUp({
       email: trimmedEmail,
       password,
@@ -90,10 +101,6 @@ export const RegisterPage: React.FC = () => {
         data: {
           full_name: trimmedName,
           student_number: trimmedStudentId,
-          faculty,
-          programme,
-          year_of_study: 4,
-          semester: 8,
         },
       },
     });
@@ -104,13 +111,45 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
-    // Sign out any auto-created session so the student completes the standard login verification flow
+    const requiresEmailConfirm = !data.session && !data.user.email_confirmed_at;
+    setPendingEmailConfirmation(requiresEmailConfirm);
+
+    // Sign out any auto-created session so the student signs in through the standard login verification flow
     if (data.session) {
       await supabase.auth.signOut();
     }
 
     setSubmitting(false);
     setRegisteredComplete(true);
+  };
+
+  const handleResendConfirmation = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) return;
+    setResending(true);
+    setError(null);
+    setResendInfo(null);
+
+    await supabase.rpc('refresh_student_verification_expiry', {
+      p_email: trimmedEmail,
+    });
+
+    const { error: resendErr } = await supabase.auth.resend({
+      type: 'signup',
+      email: trimmedEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/login`,
+      },
+    });
+
+    setResending(false);
+    if (resendErr) {
+      setError(resendErr.message);
+      return;
+    }
+    setResendInfo(
+      `A fresh verification email has been sent to ${trimmedEmail}. Please confirm within 24 hours.`
+    );
   };
 
   return (
@@ -144,7 +183,7 @@ export const RegisterPage: React.FC = () => {
               Create Student Account
             </h1>
             <p className="mt-1 text-xs text-slate-500">
-              Undergraduate Student Self-Registration • Digital LEAP System
+              Official University Student Registry Verification • Digital LEAP System
             </p>
           </div>
 
@@ -153,38 +192,94 @@ export const RegisterPage: React.FC = () => {
               <div className="mx-auto h-12 w-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <h2 className="text-base font-bold text-slate-900">
-                  Student Account Created & Verified
+                  {pendingEmailConfirmation
+                    ? 'Confirm Your University Email to Activate Your Account'
+                    : 'Student Account Verified & Activated'}
                 </h2>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Your student account for <strong>{email.trim().toLowerCase()}</strong> (Student
-                  ID: <strong>{studentId.trim()}</strong>) has been registered with the{' '}
-                  <strong>STUDENT</strong> role. Proceed to the login page to sign in and access
-                  your dashboard.
+                  {pendingEmailConfirmation ? (
+                    <>
+                      Your Student ID (<strong>{studentId.trim().toUpperCase()}</strong>) was
+                      matched against the University Student Registry. Please click the verification
+                      link sent to <strong>{email.trim().toLowerCase()}</strong> to activate your{' '}
+                      <strong>STUDENT</strong> account.
+                    </>
+                  ) : (
+                    <>
+                      Your Student ID (<strong>{studentId.trim().toUpperCase()}</strong>) and
+                      university email (<strong>{email.trim().toLowerCase()}</strong>) have been
+                      verified against the University Student Registry, and your{' '}
+                      <strong>STUDENT</strong> account is now active.
+                    </>
+                  )}
+                </p>
+                <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  Note: Account activation grants access to the Student Portal so you can prepare
+                  and submit your internship application for review by the LEAP Coordinator.
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="primary"
-                size="md"
-                className="w-full"
-                onClick={() =>
-                  navigate('/login', {
-                    state: {
-                      registeredEmail: email.trim().toLowerCase(),
-                      registrationMessage:
-                        'Student registration complete. Sign in with your email and password below.',
-                    },
-                  })
-                }
-              >
-                <span>Proceed to Sign In</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+
+              {resendInfo && (
+                <div className="rounded-lg bg-teal-50 p-3 text-xs text-teal-800 border border-teal-200">
+                  {resendInfo}
+                </div>
+              )}
+
+              {error && (
+                <div className="rounded-lg bg-rose-50 p-3 text-xs text-rose-700 border border-rose-200">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2.5">
+                {pendingEmailConfirmation && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    isLoading={resending}
+                    onClick={handleResendConfirmation}
+                  >
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                    <span>Resend Verification Email</span>
+                  </Button>
+                )}
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  className="w-full"
+                  onClick={() =>
+                    navigate('/login', {
+                      state: {
+                        registeredEmail: email.trim().toLowerCase(),
+                        registrationMessage: pendingEmailConfirmation
+                          ? 'Please confirm the verification link sent to your university email before signing in.'
+                          : 'Student registration verified. Sign in with your university email and password below.',
+                      },
+                    })
+                  }
+                >
+                  <span>Proceed to Sign In</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ) : (
             <>
+              <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 p-3 flex items-start gap-2.5">
+                <ShieldCheck className="h-4 w-4 text-teal-700 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Enter your official Limkokwing <strong>Student ID</strong> and registered{' '}
+                  <strong>University Email Address</strong>. Your Faculty, Programme, Year of Study,
+                  and Academic Standing are loaded automatically from the University Registrar.
+                </p>
+              </div>
+
               {error && (
                 <div
                   role="alert"
@@ -238,7 +333,7 @@ export const RegisterPage: React.FC = () => {
                         value={studentId}
                         onChange={(e) => setStudentId(e.target.value)}
                         placeholder="e.g. LUCT-SL-2024-0901"
-                        className="block w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002B49] text-slate-900"
+                        className="block w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002B49] text-slate-900 uppercase"
                       />
                     </div>
                   </div>
@@ -263,56 +358,6 @@ export const RegisterPage: React.FC = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@student.limkokwing.edu.sl"
                       className="block w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002B49] text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="reg-faculty"
-                      className="block text-xs font-semibold text-slate-700"
-                    >
-                      Faculty
-                    </label>
-                    <select
-                      id="reg-faculty"
-                      value={faculty}
-                      onChange={(e) => setFaculty(e.target.value)}
-                      className="mt-1 block w-full py-2 px-3 text-xs border border-slate-300 rounded-lg bg-white text-slate-900"
-                    >
-                      <option value="Faculty of Information & Communication Technology">
-                        Faculty of ICT
-                      </option>
-                      <option value="Faculty of Business & Globalization">
-                        Faculty of Business & Globalization
-                      </option>
-                      <option value="Faculty of Architecture & The Built Environment">
-                        Faculty of Architecture & Built Environment
-                      </option>
-                      <option value="Faculty of Design Innovation">
-                        Faculty of Design Innovation
-                      </option>
-                      <option value="Faculty of Communication, Media & Broadcasting">
-                        Faculty of Communication & Media
-                      </option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="reg-programme"
-                      className="block text-xs font-semibold text-slate-700"
-                    >
-                      Programme of Study
-                    </label>
-                    <input
-                      id="reg-programme"
-                      type="text"
-                      required
-                      value={programme}
-                      onChange={(e) => setProgramme(e.target.value)}
-                      className="mt-1 block w-full py-2 px-3 text-xs border border-slate-300 rounded-lg text-slate-900"
                     />
                   </div>
                 </div>
@@ -372,7 +417,7 @@ export const RegisterPage: React.FC = () => {
                   className="w-full"
                   isLoading={submitting}
                 >
-                  <span>Create Student Account</span>
+                  <span>Verify Identity & Create Student Account</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </form>
@@ -390,4 +435,3 @@ export const RegisterPage: React.FC = () => {
     </div>
   );
 };
-

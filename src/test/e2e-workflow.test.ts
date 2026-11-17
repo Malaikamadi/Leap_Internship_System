@@ -7,6 +7,9 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321';
 const SUPABASE_ANON_KEY =
   process.env.VITE_SUPABASE_ANON_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+const SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
 
 let clientSeq = 0;
 
@@ -26,6 +29,10 @@ function createRoleClient(): SupabaseClient {
   });
 }
 
+const serviceAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
 async function signInAs(email: string, password = DEMO_PASSWORD): Promise<SupabaseClient> {
   const client = createRoleClient();
   const { error } = await client.auth.signInWithPassword({ email, password });
@@ -35,64 +42,163 @@ async function signInAs(email: string, password = DEMO_PASSWORD): Promise<Supaba
   return client;
 }
 
-describe('Digital LEAP System — Real PostgreSQL RLS, Registration, Staff Provisioning & 12-Step Workflow', () => {
+describe('Digital LEAP System — Protected University Student Registry, RLS & 12-Step Workflow', () => {
   let seedContext: Awaited<ReturnType<typeof seedDatabase>>;
 
   beforeAll(async () => {
     seedContext = await seedDatabase({ resetPrimaryStudent: true });
   }, 30000);
 
-  it('registers a new student via Supabase Auth, assigns ONLY the student role, blocks duplicate student IDs, and allows login', async () => {
+  it('verifies all 11 University Student Registry security & workflow scenarios (Scenarios 1–11)', async () => {
     const anon = createRoleClient();
-    const uniqueSuffix = Date.now();
-    const newStudentEmail = `student.reg.${uniqueSuffix}@student.limkokwing.edu.sl`;
-    const newStudentId = `LUCT-SL-REG-${uniqueSuffix}`;
+    const adminClient = await signInAs('admin@limkokwing.edu.sl');
+    const coordinatorClient = await signInAs('coordinator@limkokwing.edu.sl');
+    const uniqueSuffix = Date.now().toString().slice(-4);
 
-    // 1. Pre-check student ID availability
-    const { data: availableBefore } = await anon.rpc('check_student_id_available', {
-      p_student_number: newStudentId,
+    // Seed official Registrar records via the protected Admin RPC (admin_upsert_student_registry_batch)
+    const validStudentId = `LUCT-SL-2026-${uniqueSuffix}`;
+    const validStudentEmail = `mariama.conteh.${uniqueSuffix}@student.limkokwing.edu.sl`;
+
+    const stage1StudentId = `LUCT-SL-2025-${uniqueSuffix}`;
+    const stage1MistypedEmail = `typo.kamara.${uniqueSuffix}@student.limkokwing.edu.sl`;
+    const stage1CorrectedEmail = `ibr.kamara.${uniqueSuffix}@student.limkokwing.edu.sl`;
+
+    const concurrentStudentId = `LUCT-SL-2027-${uniqueSuffix}`;
+    const concurrentEmail = `conc.sesay.${uniqueSuffix}@student.limkokwing.edu.sl`;
+
+    const suspendedStudentId = `LUCT-SL-2028-${uniqueSuffix}`;
+    const suspendedEmail = `suspended.${uniqueSuffix}@student.limkokwing.edu.sl`;
+
+    const { data: batchData, error: batchErr } = await adminClient.rpc(
+      'admin_upsert_student_registry_batch',
+      {
+        p_records: [
+          {
+            student_number: validStudentId,
+            institutional_email: validStudentEmail,
+            full_name: 'Mariama K. Conteh',
+            faculty: 'Faculty of Business & Globalization',
+            programme: 'BSc (Hons) in Business Information Systems',
+            year_of_study: 4,
+            semester: 8,
+            gpa: 3.15,
+            credits_completed: 88,
+            enrollment_status: 'ENROLLED',
+            academic_year: '2025/2026',
+          },
+          {
+            student_number: stage1StudentId,
+            institutional_email: stage1MistypedEmail,
+            full_name: 'Ibrahim S. Kamara',
+            faculty: 'Faculty of Information & Communication Technology',
+            programme: 'BSc (Hons) in Software Engineering with Multimedia',
+            year_of_study: 4,
+            semester: 8,
+            gpa: 3.45,
+            credits_completed: 92,
+            enrollment_status: 'ENROLLED',
+            academic_year: '2025/2026',
+          },
+          {
+            student_number: concurrentStudentId,
+            institutional_email: concurrentEmail,
+            full_name: 'fatmata J. Sesay',
+            faculty: 'Faculty of Information & Communication Technology',
+            programme: 'BSc (Hons) in Information Technology',
+            year_of_study: 4,
+            semester: 8,
+            gpa: 3.6,
+            credits_completed: 94,
+            enrollment_status: 'ENROLLED',
+            academic_year: '2025/2026',
+          },
+          {
+            student_number: suspendedStudentId,
+            institutional_email: suspendedEmail,
+            full_name: 'Suspended Student Record',
+            faculty: 'Faculty of ICT',
+            programme: 'BSc IT',
+            year_of_study: 3,
+            semester: 6,
+            gpa: 2.1,
+            credits_completed: 60,
+            enrollment_status: 'SUSPENDED',
+            academic_year: '2025/2026',
+          },
+        ],
+      }
+    );
+    expect(batchErr).toBeNull();
+    expect((batchData as { upserted_count: number }).upserted_count).toBe(4);
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 2 & 3: Invalid Student ID and Wrong Email for a Valid Student ID
+    // Must both fail with the exact same generic error message (zero enumeration)
+    // -------------------------------------------------------------------------
+    const { data: invalidIdCheck } = await anon.rpc('verify_student_registration_candidate', {
+      p_student_number: 'LUCT-SL-9999-9999',
+      p_email: 'nobody@student.limkokwing.edu.sl',
     });
-    expect(availableBefore).toBe(true);
+    const { data: wrongEmailCheck } = await anon.rpc('verify_student_registration_candidate', {
+      p_student_number: validStudentId,
+      p_email: 'wrong.person@student.limkokwing.edu.sl',
+    });
+    const { data: suspendedCheck } = await anon.rpc('verify_student_registration_candidate', {
+      p_student_number: suspendedStudentId,
+      p_email: suspendedEmail,
+    });
 
-    // 2. Self-register student (attempting to pass role: 'admin' in metadata must be ignored)
+    expect((invalidIdCheck as { ok: boolean }).ok).toBe(false);
+    expect((wrongEmailCheck as { ok: boolean }).ok).toBe(false);
+    expect((suspendedCheck as { ok: boolean }).ok).toBe(false);
+    expect((invalidIdCheck as { error: string }).error).toBe(
+      (wrongEmailCheck as { error: string }).error
+    );
+    expect((wrongEmailCheck as { error: string }).error).toBe(
+      (suspendedCheck as { error: string }).error
+    );
+
+    // Direct signUp bypassing pre-check with wrong email or invalid ID must also be blocked by trigger
+    const { error: directBadSignUpErr } = await anon.auth.signUp({
+      email: 'wrong.person@student.limkokwing.edu.sl',
+      password: 'StudentSelfReg!2026',
+      options: { data: { full_name: 'Spoof User', student_number: validStudentId } },
+    });
+    expect(directBadSignUpErr).toBeTruthy();
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 1 & 7: Valid Student ID + matching university email + Role/GPA spoofing defense
+    // -------------------------------------------------------------------------
+    const { data: validCand } = await anon.rpc('verify_student_registration_candidate', {
+      p_student_number: validStudentId,
+      p_email: validStudentEmail,
+    });
+    expect((validCand as { ok: boolean; verified_candidate: boolean }).ok).toBe(true);
+    expect((validCand as { ok: boolean; verified_candidate: boolean }).verified_candidate).toBe(
+      true
+    );
+
+    // Attempt to spoof role: 'admin', gpa: 4.00, credits_completed: 120, and fake faculty in signUp metadata
     const { data: signUpData, error: signUpErr } = await anon.auth.signUp({
-      email: newStudentEmail,
+      email: validStudentEmail,
       password: 'StudentSelfReg!2026',
       options: {
         data: {
-          full_name: 'Fatu K. Turay',
-          student_number: newStudentId,
-          faculty: 'Faculty of Information & Communication Technology',
-          programme: 'BSc (Hons) in Software Engineering with Multimedia',
-          year_of_study: 4,
-          semester: 8,
-          role: 'admin', // Malicious metadata must be ignored by handle_new_auth_user
+          full_name: 'Client Spoofed Name',
+          student_number: validStudentId,
+          role: 'admin',
+          faculty: 'Spoofed Faculty',
+          programme: 'Spoofed Programme',
+          gpa: 4.0,
+          credits_completed: 120,
         },
       },
     });
     expect(signUpErr).toBeNull();
     expect(signUpData.user).toBeTruthy();
 
-    // 3. Duplicate Student ID is rejected
-    const { data: availableAfter } = await anon.rpc('check_student_id_available', {
-      p_student_number: newStudentId,
-    });
-    expect(availableAfter).toBe(false);
-
-    const { error: dupSignUpErr } = await anon.auth.signUp({
-      email: `dup.${uniqueSuffix}@student.limkokwing.edu.sl`,
-      password: 'StudentSelfReg!2026',
-      options: {
-        data: {
-          full_name: 'Duplicate Student',
-          student_number: newStudentId,
-        },
-      },
-    });
-    expect(dupSignUpErr).toBeTruthy();
-
-    // 4. Student logs in and has ONLY the 'student' role
-    const newStudentClient = await signInAs(newStudentEmail, 'StudentSelfReg!2026');
+    // Sign in as the newly registered student and verify authoritative Registry data won over spoofed metadata
+    const newStudentClient = await signInAs(validStudentEmail, 'StudentSelfReg!2026');
     const { data: roleRows } = await newStudentClient
       .from('user_roles')
       .select('role')
@@ -104,10 +210,204 @@ describe('Digital LEAP System — Real PostgreSQL RLS, Registration, Staff Provi
       .select('*')
       .eq('user_id', signUpData.user!.id)
       .single();
-    expect(spRow?.student_number).toBe(newStudentId);
-    expect(spRow?.year_of_study).toBe(4);
-    expect(spRow?.semester).toBe(8);
-  });
+    expect(spRow?.student_number).toBe(validStudentId);
+    expect(spRow?.faculty).toBe('Faculty of Business & Globalization');
+    expect(spRow?.programme).toBe('BSc (Hons) in Business Information Systems');
+    expect(Number(spRow?.gpa)).toBeCloseTo(3.15, 2);
+    expect(spRow?.credits_completed).toBe(88);
+    expect(spRow?.registry_id).toBeTruthy();
+    expect(spRow?.registry_verified_at).toBeTruthy();
+
+    // Verify student cannot tamper with GPA or student_number via direct UPDATE
+    const { error: tamperErr } = await newStudentClient
+      .from('student_profiles')
+      .update({ gpa: 4.0 })
+      .eq('id', spRow!.id);
+    expect(tamperErr).toBeTruthy();
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 4: Duplicate Registration Prevention
+    // -------------------------------------------------------------------------
+    const { data: dupCheckAfter } = await anon.rpc('verify_student_registration_candidate', {
+      p_student_number: validStudentId,
+      p_email: validStudentEmail,
+    });
+    expect((dupCheckAfter as { ok: boolean }).ok).toBe(false);
+
+    const { error: dupSignUpErr } = await anon.auth.signUp({
+      email: `another.${uniqueSuffix}@student.limkokwing.edu.sl`,
+      password: 'StudentSelfReg!2026',
+      options: { data: { full_name: 'Duplicate Claimer', student_number: validStudentId } },
+    });
+    expect(dupSignUpErr).toBeTruthy();
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 5 & 6: Unverified Account Access, Email Correction Recovery & Expired Confirmation
+    // -------------------------------------------------------------------------
+    // Admin corrects the mistyped registry email for stage1StudentId before the student registers
+    const { data: corrData, error: corrErr } = await adminClient.rpc(
+      'admin_correct_registry_student_email',
+      {
+        p_student_number: stage1StudentId,
+        p_new_email: stage1CorrectedEmail,
+        p_reason: 'Verified Student ID card in person; corrected Registrar email typo.',
+      }
+    );
+    expect(corrErr).toBeNull();
+    expect((corrData as { institutional_email: string }).institutional_email).toBe(
+      stage1CorrectedEmail
+    );
+
+    // Create a Stage 1 pending user (email_confirm: false => email_confirmed_at IS NULL)
+    const { data: pendingAuthData, error: pendingAuthErr } =
+      await serviceAdmin.auth.admin.createUser({
+        email: stage1CorrectedEmail,
+        password: 'PendingStudent!2026',
+        email_confirm: false,
+        user_metadata: {
+          full_name: 'Ibrahim S. Kamara',
+          student_number: stage1StudentId,
+        },
+      });
+    expect(pendingAuthErr).toBeNull();
+    const pendingUserId = pendingAuthData.user!.id;
+
+    // Verify Stage 1 pending account has is_active = false, ZERO roles, and ZERO student_profiles rows
+    const { data: pendingProf } = await serviceAdmin
+      .from('profiles')
+      .select('is_active')
+      .eq('id', pendingUserId)
+      .single();
+    expect(pendingProf?.is_active).toBe(false);
+
+    const { data: pendingRoles } = await serviceAdmin
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', pendingUserId);
+    expect(pendingRoles || []).toHaveLength(0);
+
+    const { data: pendingSp } = await serviceAdmin
+      .from('student_profiles')
+      .select('*')
+      .eq('user_id', pendingUserId);
+    expect(pendingSp || []).toHaveLength(0);
+
+    // Refresh verification expiry window and then confirm email (Stage 2 activation)
+    const { data: refreshRes, error: refreshErr } = await anon.rpc(
+      'refresh_student_verification_expiry',
+      { p_email: stage1CorrectedEmail }
+    );
+    expect(refreshErr).toBeNull();
+    expect((refreshRes as { refreshed: boolean }).refreshed).toBe(true);
+
+    // Confirm email -> fires on_auth_user_email_confirmed trigger -> activates student account!
+    const { error: confirmErr } = await serviceAdmin.auth.admin.updateUserById(pendingUserId, {
+      email_confirm: true,
+    });
+    expect(confirmErr).toBeNull();
+
+    // Now the confirmed student can sign in and has an active student profile & role
+    const confirmedStudentClient = await signInAs(stage1CorrectedEmail, 'PendingStudent!2026');
+    const { data: confirmedSp } = await confirmedStudentClient
+      .from('student_profiles')
+      .select('student_number, registry_verified_at')
+      .eq('user_id', pendingUserId)
+      .single();
+    expect(confirmedSp?.student_number).toBe(stage1StudentId);
+    expect(confirmedSp?.registry_verified_at).toBeTruthy();
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 8: Concurrent Registration Protection
+    // -------------------------------------------------------------------------
+    const [conc1, conc2] = await Promise.all([
+      anon.auth.signUp({
+        email: concurrentEmail,
+        password: 'Concurrent!2026',
+        options: { data: { full_name: 'Fatmata J. Sesay', student_number: concurrentStudentId } },
+      }),
+      anon.auth.signUp({
+        email: concurrentEmail,
+        password: 'Concurrent!2026',
+        options: { data: { full_name: 'Fatmata J. Sesay', student_number: concurrentStudentId } },
+      }),
+    ]);
+    const concSuccessCount = [conc1, conc2].filter((r) => !r.error && r.data?.user).length;
+    expect(concSuccessCount).toBeGreaterThanOrEqual(1);
+    const { data: concProfiles } = await serviceAdmin
+      .from('student_profiles')
+      .select('*')
+      .eq('student_number', concurrentStudentId);
+    expect(concProfiles).toHaveLength(1);
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 10 & 11: Newly Registered Student Submits Application (DRAFT -> SUBMITTED)
+    // and ONLY Coordinator Can Review and Approve (UNDER_REVIEW -> APPROVED)
+    // -------------------------------------------------------------------------
+    // Verify newly registered student does NOT automatically have an approved application
+    const { data: initialApps } = await newStudentClient
+      .from('internship_applications')
+      .select('*');
+    expect(initialApps || []).toHaveLength(0);
+
+    // Student creates DRAFT application and submits it (SUBMITTED)
+    const { data: newAppId, error: newAppDraftErr } = await newStudentClient.rpc(
+      'student_save_application',
+      {
+        p_application_id: null,
+        p_academic_year: '2025/2026',
+        p_preferred_industry: 'Financial Information Systems',
+        p_preferred_organization_id: null,
+        p_motivation:
+          'Applying my Business Information Systems coursework to digital banking operations.',
+        p_relevant_skills: 'SQL, Business Process Modelling, ERP Systems',
+        p_preferred_start_date: '2026-12-01',
+        p_preferred_end_date: '2027-02-28',
+        p_preferred_host_organization: 'Sierra Leone Commercial Bank (SLCB)',
+        p_preference_reason: 'Interest in enterprise banking systems.',
+      }
+    );
+    expect(newAppDraftErr).toBeNull();
+    expect(newAppId).toBeTruthy();
+
+    const { error: newAppSubmitErr } = await newStudentClient.rpc('student_submit_application', {
+      p_application_id: newAppId,
+    });
+    expect(newAppSubmitErr).toBeNull();
+
+    const { data: submittedApp } = await newStudentClient
+      .from('internship_applications')
+      .select('status')
+      .eq('id', newAppId)
+      .single();
+    expect(submittedApp?.status).toBe('SUBMITTED');
+
+    // Student cannot approve their own application
+    const { error: studentApproveAttempt } = await newStudentClient.rpc(
+      'coordinator_decide_application',
+      {
+        p_application_id: newAppId,
+        p_decision: 'APPROVED',
+        p_comment: 'Trying to self-approve',
+      }
+    );
+    expect(studentApproveAttempt).toBeTruthy();
+
+    // Only Coordinator can transition SUBMITTED -> UNDER_REVIEW -> APPROVED
+    const { error: coordStartErr } = await coordinatorClient.rpc('coordinator_start_review', {
+      p_application_id: newAppId,
+    });
+    expect(coordStartErr).toBeNull();
+
+    const { error: coordDecideErr } = await coordinatorClient.rpc(
+      'coordinator_decide_application',
+      {
+        p_application_id: newAppId,
+        p_decision: 'APPROVED',
+        p_comment: 'Verified registry academic standing (GPA 3.15, 88 credits). Approved.',
+      }
+    );
+    expect(coordDecideErr).toBeNull();
+  }, 30000);
 
   it('allows System Administrator to provision staff accounts with one-time password setup links and staff can log in', async () => {
     const adminClient = await signInAs('admin@limkokwing.edu.sl');
@@ -159,7 +459,7 @@ describe('Digital LEAP System — Real PostgreSQL RLS, Registration, Staff Provi
     expect(hasCoord).toBe(true);
   });
 
-  it('rejects invalid credentials and prevents privilege self-escalation', async () => {
+  it('rejects invalid credentials, preserves existing student accounts (Scenario 9), and prevents privilege self-escalation', async () => {
     const anon = createRoleClient();
     const { error: badLogin } = await anon.auth.signInWithPassword({
       email: 'student@limkokwing.edu.sl',
@@ -168,15 +468,21 @@ describe('Digital LEAP System — Real PostgreSQL RLS, Registration, Staff Provi
     expect(badLogin).toBeTruthy();
 
     const studentClient = await signInAs('student@limkokwing.edu.sl');
+    const student2Client = await signInAs('kadiatu.bangura@student.limkokwing.edu.sl');
+    const student3Client = await signInAs('samuel.koroma@student.limkokwing.edu.sl');
+    const student4Client = await signInAs('aminata.jalloh@student.limkokwing.edu.sl');
 
-    // Verify demo student is Year 4, Semester 8
-    const { data: demoSp } = await studentClient
-      .from('student_profiles')
-      .select('year_of_study, semester')
-      .eq('id', seedContext.students.sp1.id)
-      .single();
-    expect(demoSp?.year_of_study).toBe(4);
-    expect(demoSp?.semester).toBe(8);
+    // Scenario 9: Verify all 4 existing seeded students have valid registry_id & registry_verified_at
+    for (const client of [studentClient, student2Client, student3Client, student4Client]) {
+      const { data: sp } = await client
+        .from('student_profiles')
+        .select('student_number, year_of_study, semester, registry_id, registry_verified_at')
+        .single();
+      expect(sp?.year_of_study).toBe(4);
+      expect(sp?.semester).toBe(8);
+      expect(sp?.registry_id).toBeTruthy();
+      expect(sp?.registry_verified_at).toBeTruthy();
+    }
 
     // Student cannot grant themselves admin role via table insert or admin RPC
     const { error: directRoleErr } = await studentClient.from('user_roles').insert({
@@ -427,9 +733,11 @@ describe('Digital LEAP System — Real PostgreSQL RLS, Registration, Staff Provi
       .from('audit_logs')
       .select('action')
       .order('created_at', { ascending: false })
-      .limit(60);
+      .limit(80);
     const actions = new Set((auditRows || []).map((r) => r.action));
-    expect(actions.has('STUDENT_SELF_REGISTERED')).toBe(true);
+    expect(actions.has('STUDENT_REGISTRY_ACCOUNT_ACTIVATED')).toBe(true);
+    expect(actions.has('STUDENT_REGISTRY_BATCH_UPSERTED')).toBe(true);
+    expect(actions.has('STUDENT_REGISTRY_EMAIL_CORRECTED')).toBe(true);
     expect(actions.has('STAFF_ACCOUNT_PROVISIONED')).toBe(true);
     expect(actions.has('STAFF_PASSWORD_SETUP_COMPLETED')).toBe(true);
     expect(actions.has('COMPLETION_COMPLETED')).toBe(true);
