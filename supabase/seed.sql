@@ -70,3 +70,4 @@ insert into public.system_settings (key, value, description, policy_confirmed) v
 on conflict (key) do update
   set value = excluded.value,
       description = excluded.description;
+

@@ -496,3 +496,4 @@ export const SupervisorAssessmentsPage: React.FC = () => {
     </div>
   );
 };
+

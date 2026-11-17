@@ -356,3 +356,4 @@ export const CoordinatorMonitoringPage: React.FC = () => {
     </div>
   );
 };
+

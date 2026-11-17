@@ -343,3 +343,4 @@ grant execute on function
   public.admin_revoke_role(uuid, public.app_role),
   public.admin_update_setting(text, jsonb, boolean)
 to authenticated, service_role;
+

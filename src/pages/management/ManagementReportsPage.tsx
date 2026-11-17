@@ -189,3 +189,4 @@ export const ManagementReportsPage: React.FC = () => {
     </div>
   );
 };
+

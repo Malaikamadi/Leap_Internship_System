@@ -489,3 +489,4 @@ export const CoordinatorApplicationsPage: React.FC = () => {
     </div>
   );
 };
+

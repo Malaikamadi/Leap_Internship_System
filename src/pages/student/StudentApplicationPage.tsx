@@ -513,3 +513,4 @@ export const StudentApplicationPage: React.FC = () => {
     </div>
   );
 };
+
