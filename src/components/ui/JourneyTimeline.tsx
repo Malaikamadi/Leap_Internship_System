@@ -201,15 +201,17 @@ export const JourneyTimeline: React.FC<JourneyTimelineProps> = ({
           const isLast = idx === stages.length - 1;
           return (
             <li key={stage.number} className="relative flex sm:flex-col items-start gap-3 sm:gap-2">
-              {/* Connector rail on desktop */}
+              {/* Connector rail on desktop with live animated beam on current/completed transitions */}
               {!isLast && (
                 <div
                   className={cn(
-                    'hidden sm:block absolute top-3.5 left-8 right-0 h-[2px]',
+                    'hidden sm:block absolute top-3.5 left-8 right-0 h-[2px] overflow-hidden',
                     stage.state === 'completed' ? 'bg-teal-600' : 'bg-slate-200'
                   )}
                   aria-hidden="true"
-                />
+                >
+                  {stage.state === 'current' && <div className="h-full w-1/2 leap-beam-flow" />}
+                </div>
               )}
 
               <div

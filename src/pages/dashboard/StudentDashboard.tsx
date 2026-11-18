@@ -20,6 +20,7 @@ import { NextActionPanel } from '../../components/ui/NextActionPanel';
 import { ProgressBar } from '../../components/ui/ProgressBar';
 import { ActivityTimeline } from '../../components/ui/ActivityTimeline';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { MiniTechOrbital } from '../../components/landing/GlobalTechBackdrop';
 import { formatDate, formatDateTime } from '../../lib/utils';
 import {
   GraduationCap,
@@ -305,12 +306,14 @@ export const StudentDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Compact Institutional Student Identity Band */}
-      <div className="rounded-lg bg-[#002B49] leap-geo-grid-dark text-white p-5 sm:p-6 border border-[#001a2e]">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      {/* Compact Institutional Student Identity Band with Animated Orbital Accent */}
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-[#001b30] via-[#002B49] to-[#02243d] leap-geo-grid-dark text-white p-5 sm:p-6 border border-[#001a2e] leap-stagger-1">
+        <MiniTechOrbital className="absolute -right-12 -top-12 h-52 w-52 opacity-55" />
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-2 min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
-              <span className="inline-flex items-center gap-1.5 font-mono font-semibold text-teal-300 bg-white/10 px-2 py-0.5 rounded">
+              <span className="inline-flex items-center gap-1.5 font-mono font-semibold text-teal-300 bg-white/10 border border-teal-400/25 px-2 py-0.5 rounded">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse" />
                 <GraduationCap className="h-3.5 w-3.5" />
                 {studentProfile?.student_number || 'Unregistered ID'}
               </span>
@@ -361,24 +364,28 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       {/* Signature LEAP 5-Stage Internship Journey Timeline */}
-      <JourneyTimeline
-        application={application}
-        placement={placement}
-        acceptedReportsCount={acceptedReportsCount}
-        completion={completion}
-      />
+      <div className="leap-stagger-2">
+        <JourneyTimeline
+          application={application}
+          placement={placement}
+          acceptedReportsCount={acceptedReportsCount}
+          completion={completion}
+        />
+      </div>
 
       {/* Signature LEAP Next Required Action Panel */}
-      <NextActionPanel
-        title={nextAction.title}
-        description={nextAction.description}
-        actionLabel={nextAction.actionLabel}
-        actionTo={nextAction.actionTo}
-        tone={nextAction.tone}
-      />
+      <div className="leap-stagger-3">
+        <NextActionPanel
+          title={nextAction.title}
+          description={nextAction.description}
+          actionLabel={nextAction.actionLabel}
+          actionTo={nextAction.actionTo}
+          tone={nextAction.tone}
+        />
+      </div>
 
       {/* Main 12-Column Editorial Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 leap-stagger-4">
         {/* Left 7 Columns: Placement Dossier + Progress Reporting + Feedback */}
         <div className="lg:col-span-7 space-y-6">
           {/* Placement & Academic Supervision Dossier */}

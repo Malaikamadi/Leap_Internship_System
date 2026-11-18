@@ -108,7 +108,7 @@ export const AdminDashboard: React.FC = () => {
       />
 
       {/* Unified Governance Telemetry Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
+      <div className="leap-stagger-1 grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
         <div className="bg-white p-4">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Total Accounts
@@ -158,7 +158,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Quick Administrative Modules Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="leap-stagger-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           {
             title: 'Staff Provisioning & Roles',
@@ -184,7 +184,7 @@ export const AdminDashboard: React.FC = () => {
             <Link
               key={item.title}
               to={item.to}
-              className="group bg-white border border-slate-200 rounded-lg p-4 hover:border-[#002B49]/40 transition-colors flex items-start justify-between gap-3"
+              className="group bg-white border border-slate-200 rounded-lg p-4 hover:border-teal-600/60 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 flex items-start justify-between gap-3"
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div className="h-8 w-8 rounded-md bg-[#002B49]/[0.07] text-[#002B49] flex items-center justify-center shrink-0">
@@ -204,7 +204,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Main 12-Col Governance Breakdown + Audit Ledger */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="leap-stagger-3 grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

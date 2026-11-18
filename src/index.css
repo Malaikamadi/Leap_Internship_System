@@ -121,6 +121,24 @@
     background: linear-gradient(90deg, transparent 0%, #14b8a6 50%, transparent 100%);
     animation: leapBeamSlide 3.2s ease-in-out infinite;
   }
+
+  .leap-scan-line {
+    background: linear-gradient(180deg, transparent 0%, rgba(45, 212, 191, 0.22) 50%, transparent 100%);
+    animation: leapScanVertical 6.5s ease-in-out infinite;
+  }
+
+  .leap-stagger-1 {
+    animation: leapHeroRise 420ms cubic-bezier(0.16, 1, 0.3, 1) 40ms both;
+  }
+  .leap-stagger-2 {
+    animation: leapHeroRise 420ms cubic-bezier(0.16, 1, 0.3, 1) 110ms both;
+  }
+  .leap-stagger-3 {
+    animation: leapHeroRise 420ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+  }
+  .leap-stagger-4 {
+    animation: leapHeroRise 420ms cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
+  }
 }
 
 @keyframes leapFadeSlide {
@@ -229,6 +247,23 @@
   }
 }
 
+@keyframes leapScanVertical {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(420%);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -239,6 +274,10 @@
   .leap-hero-rise-delay-1,
   .leap-hero-rise-delay-2,
   .leap-hero-rise-delay-3,
+  .leap-stagger-1,
+  .leap-stagger-2,
+  .leap-stagger-3,
+  .leap-stagger-4,
   .leap-orbit-slow,
   .leap-orbit-reverse,
   .leap-signal-arc,
@@ -248,7 +287,8 @@
   .leap-beacon-ring-delayed,
   .leap-float-subtle,
   .leap-marquee-track,
-  .leap-beam-flow {
+  .leap-beam-flow,
+  .leap-scan-line {
     animation: none !important;
   }
   *,

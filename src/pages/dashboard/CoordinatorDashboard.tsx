@@ -163,7 +163,7 @@ export const CoordinatorDashboard: React.FC = () => {
       />
 
       {/* Unified Segmented Operational Pipeline Bar (replaces 8 separate floating KPI cards) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
+      <div className="leap-stagger-1 grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
         <div className="bg-white p-4">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Total Applications
@@ -221,17 +221,17 @@ export const CoordinatorDashboard: React.FC = () => {
       </div>
 
       {/* Priority Tasks Action Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="leap-stagger-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {priorityTasks.map((task) => {
           const Icon = task.icon;
           return (
             <Link
               key={task.label}
               to={task.to}
-              className={`group rounded-lg border p-3.5 transition-all flex items-center justify-between gap-3 ${
+              className={`group rounded-lg border p-3.5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md flex items-center justify-between gap-3 ${
                 task.urgent
-                  ? 'bg-white border-slate-200 hover:border-[#002B49]/40 border-l-[3px] border-l-amber-500'
-                  : 'bg-white border-slate-200 hover:border-slate-300'
+                  ? 'bg-white border-slate-200 hover:border-teal-600/50 border-l-[3px] border-l-amber-500'
+                  : 'bg-white border-slate-200 hover:border-teal-600/50'
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -256,7 +256,7 @@ export const CoordinatorDashboard: React.FC = () => {
       </div>
 
       {/* Main 12-Col Triage Table + Activity / Concerns Column */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="leap-stagger-3 grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card noPadding className="lg:col-span-8 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
             <div>

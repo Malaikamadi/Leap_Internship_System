@@ -131,7 +131,7 @@ export const SupervisorDashboard: React.FC = () => {
       />
 
       {/* Focused Supervision Load & Tasks Summary Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
+      <div className="leap-stagger-1 grid grid-cols-1 md:grid-cols-12 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
         <div className="md:col-span-5 bg-white p-4 flex flex-col justify-center">
           <ProgressBar
             label="Supervision Allocation Capacity"
@@ -174,7 +174,7 @@ export const SupervisorDashboard: React.FC = () => {
 
       {/* Prominent Pending Report Review Queue (shown when reports await review) */}
       {awaitingReview.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 sm:p-5">
+        <div className="leap-stagger-2 rounded-lg border border-amber-200 bg-amber-50/50 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-amber-200/70">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
@@ -226,7 +226,7 @@ export const SupervisorDashboard: React.FC = () => {
       )}
 
       {/* Main 12-Col Assigned Students Table & Feedback Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="leap-stagger-3 grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card noPadding className="lg:col-span-8 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>

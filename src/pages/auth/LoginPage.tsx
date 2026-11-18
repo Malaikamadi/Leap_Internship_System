@@ -5,6 +5,7 @@ import { ROLE_HOME_PATH } from '../../types/auth';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { PasswordInput } from '../../components/ui/PasswordInput';
+import { MiniTechOrbital } from '../../components/landing/GlobalTechBackdrop';
 import {
   Mail,
   AlertCircle,
@@ -137,19 +138,28 @@ export const LoginPage: React.FC = () => {
 
       {/* Main Split Institutional Auth Layout */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 leap-geo-grid">
-        <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-lg border border-slate-200 bg-white shadow-card overflow-hidden leap-page-enter">
-          {/* Left Institutional Brand Panel */}
-          <div className="lg:col-span-5 bg-[#002B49] leap-geo-grid-dark text-white p-7 sm:p-8 flex flex-col justify-between relative">
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
+        <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-lg border border-slate-200/90 bg-white shadow-xl shadow-[#002B49]/[0.06] overflow-hidden leap-page-enter">
+          {/* Left Institutional Brand Panel — Tech-University Animated Orbital Panel */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-[#00182b] via-[#002B49] to-[#02223a] leap-geo-grid-dark text-white p-7 sm:p-8 flex flex-col justify-between relative overflow-hidden">
+            {/* Subtle Animated Scan Beam */}
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-24 leap-scan-line"
+              aria-hidden="true"
+            />
+            {/* Animated Wireframe Orbital Watermark */}
+            <MiniTechOrbital className="absolute -right-14 -bottom-14 h-56 w-56 opacity-70" />
+
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center gap-3 leap-stagger-1">
                 <img
                   src="/limkokwing-logo.png"
                   alt="Limkokwing University Sierra Leone"
                   className="h-12 w-auto bg-white rounded p-1 object-contain"
                 />
                 <div className="border-l border-white/20 pl-3">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-teal-300">
-                    Digital LEAP Portal
+                  <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-teal-300 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse" />
+                    <span>Digital LEAP Portal</span>
                   </p>
                   <p className="text-xs font-semibold text-white">
                     Limkokwing Sierra Leone
@@ -157,7 +167,7 @@ export const LoginPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-2.5 pt-2">
+              <div className="space-y-2.5 pt-2 leap-stagger-2">
                 <h2 className="text-xl font-bold leading-snug text-white">
                   Unified Role-Based Authentication Gateway
                 </h2>
@@ -167,9 +177,21 @@ export const LoginPage: React.FC = () => {
                   Administrator.
                 </p>
               </div>
+
+              {/* Tech Security Telemetry Pills */}
+              <div className="leap-stagger-3 flex flex-wrap gap-1.5 pt-1">
+                {['AUTH // SUPABASE JWT', 'DB // POSTGRESQL RLS', '6 ROLE PORTALS'].map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded border border-teal-400/25 bg-teal-500/10 px-2 py-0.5 text-[10px] font-mono text-teal-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-white/15 space-y-2.5 text-[11px] text-slate-300">
+            <div className="relative z-10 mt-8 pt-5 border-t border-white/15 space-y-2.5 text-[11px] text-slate-300">
               <div className="flex items-start gap-2">
                 <ShieldCheck className="h-4 w-4 text-teal-300 shrink-0 mt-0.5" />
                 <span>
@@ -177,12 +199,14 @@ export const LoginPage: React.FC = () => {
                   status verification.
                 </span>
               </div>
-              <p className="text-slate-400">Hill Station Campus • Freetown, Sierra Leone</p>
+              <p className="text-slate-400 font-mono text-[10px]">
+                HILL STATION CAMPUS • FREETOWN, SIERRA LEONE
+              </p>
             </div>
           </div>
 
           {/* Right Form Panel */}
-          <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
+          <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center leap-stagger-2">
             <div className="pb-5 border-b border-slate-100">
               <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700">
                 {recoveryMode ? 'Account Recovery' : 'Portal Access'}

@@ -126,7 +126,7 @@ export const HostDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Workplace Organization Identity Header */}
-      <div className="rounded-lg bg-white border border-slate-200 border-l-4 border-l-[#002B49] p-5 shadow-subtle">
+      <div className="leap-stagger-1 rounded-lg bg-white border border-slate-200 border-l-4 border-l-[#002B49] p-5 shadow-subtle">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-teal-700">
@@ -201,7 +201,7 @@ export const HostDashboard: React.FC = () => {
       ) : null}
 
       {/* Main 12-Col Workplace Management Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="leap-stagger-2 grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 8 Cols: Intern Roster Table */}
         <Card noPadding className="lg:col-span-8 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">

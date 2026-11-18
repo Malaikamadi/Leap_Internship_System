@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { DashboardSkeleton } from '../../components/ui/Skeleton';
 import { ProgressBar } from '../../components/ui/ProgressBar';
+import { MiniTechOrbital } from '../../components/landing/GlobalTechBackdrop';
 import {
   BarChart,
   Bar,
@@ -64,9 +65,10 @@ export const ManagementDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Signature Institutional Executive Report Masthead */}
-      <div className="rounded-lg bg-[#002B49] leap-geo-grid-dark text-white p-5 sm:p-6 border border-[#001a2e]">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Signature Institutional Executive Report Masthead with Animated Orbital */}
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-[#001b30] via-[#002B49] to-[#02243d] leap-geo-grid-dark text-white p-5 sm:p-6 border border-[#001a2e] leap-stagger-1">
+        <MiniTechOrbital className="absolute -right-12 -top-12 h-52 w-52 opacity-55" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-4">
             <img
               src="/limkokwing-logo.png"
@@ -74,8 +76,9 @@ export const ManagementDashboard: React.FC = () => {
               className="h-12 w-auto bg-white rounded p-1 object-contain shrink-0"
             />
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-teal-300">
-                Office of Academic Affairs • Executive Briefing
+              <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-teal-300 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-400 animate-pulse" />
+                <span>Office of Academic Affairs • Executive Briefing</span>
               </p>
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mt-0.5">
                 University Management Analytics
@@ -114,7 +117,7 @@ export const ManagementDashboard: React.FC = () => {
       )}
 
       {/* Executive KPI Strip (Connected Segmented Grid, Tabular Numerals) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
+      <div className="leap-stagger-2 grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
         <div className="bg-white p-5">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Participating Students
@@ -168,7 +171,7 @@ export const ManagementDashboard: React.FC = () => {
       </div>
 
       {/* Primary Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="leap-stagger-3 grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Card className="lg:col-span-7">
           <CardHeader>
             <div>
