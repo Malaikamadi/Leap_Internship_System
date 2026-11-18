@@ -49,12 +49,95 @@
   .leap-dropdown-enter {
     animation: leapDropdown 150ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  .leap-hero-rise {
+    animation: leapHeroRise 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .leap-hero-rise-delay-1 {
+    animation: leapHeroRise 650ms cubic-bezier(0.16, 1, 0.3, 1) 110ms both;
+  }
+
+  .leap-hero-rise-delay-2 {
+    animation: leapHeroRise 650ms cubic-bezier(0.16, 1, 0.3, 1) 220ms both;
+  }
+
+  .leap-hero-rise-delay-3 {
+    animation: leapHeroRise 650ms cubic-bezier(0.16, 1, 0.3, 1) 330ms both;
+  }
+
+  .leap-orbit-slow {
+    transform-origin: center;
+    animation: leapOrbitSlow 48s linear infinite;
+  }
+
+  .leap-orbit-reverse {
+    transform-origin: center;
+    animation: leapOrbitReverse 64s linear infinite;
+  }
+
+  .leap-signal-arc {
+    stroke-dasharray: 12 220;
+    animation: leapSignalFlow 4.2s linear infinite;
+  }
+
+  .leap-signal-arc-delayed {
+    stroke-dasharray: 10 200;
+    animation: leapSignalFlow 5.4s linear 1.6s infinite;
+  }
+
+  .leap-signal-arc-fast {
+    stroke-dasharray: 8 180;
+    animation: leapSignalFlow 3.4s linear 0.8s infinite;
+  }
+
+  .leap-beacon-ring {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: leapBeaconPulse 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .leap-beacon-ring-delayed {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: leapBeaconPulse 3.4s cubic-bezier(0, 0, 0.2, 1) 1.1s infinite;
+  }
+
+  .leap-float-subtle {
+    animation: leapFloatSubtle 6s ease-in-out infinite;
+  }
+
+  .leap-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: leapMarquee 32s linear infinite;
+  }
+
+  .leap-marquee-track:hover {
+    animation-play-state: paused;
+  }
+
+  .leap-beam-flow {
+    background: linear-gradient(90deg, transparent 0%, #14b8a6 50%, transparent 100%);
+    animation: leapBeamSlide 3.2s ease-in-out infinite;
+  }
 }
 
 @keyframes leapFadeSlide {
   from {
     opacity: 0;
     transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes leapHeroRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -73,12 +156,99 @@
   }
 }
 
+@keyframes leapOrbitSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes leapOrbitReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes leapSignalFlow {
+  from {
+    stroke-dashoffset: 240;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes leapBeaconPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  75%, 100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+@keyframes leapFloatSubtle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes leapMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes leapBeamSlide {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(300%);
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
   .leap-page-enter,
-  .leap-dropdown-enter {
+  .leap-dropdown-enter,
+  .leap-hero-rise,
+  .leap-hero-rise-delay-1,
+  .leap-hero-rise-delay-2,
+  .leap-hero-rise-delay-3,
+  .leap-orbit-slow,
+  .leap-orbit-reverse,
+  .leap-signal-arc,
+  .leap-signal-arc-delayed,
+  .leap-signal-arc-fast,
+  .leap-beacon-ring,
+  .leap-beacon-ring-delayed,
+  .leap-float-subtle,
+  .leap-marquee-track,
+  .leap-beam-flow {
     animation: none !important;
   }
   *,
