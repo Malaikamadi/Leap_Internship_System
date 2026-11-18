@@ -74,3 +74,4 @@ export const NextActionPanel: React.FC<NextActionPanelProps> = ({
     </div>
   );
 };
+

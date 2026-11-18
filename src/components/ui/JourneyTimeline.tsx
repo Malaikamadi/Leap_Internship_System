@@ -264,3 +264,4 @@ export const JourneyTimeline: React.FC<JourneyTimelineProps> = ({
     </div>
   );
 };
+
