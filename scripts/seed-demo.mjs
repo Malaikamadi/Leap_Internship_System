@@ -97,7 +97,7 @@ export async function seedDatabase({ resetPrimaryStudent = false } = {}) {
   const supervisorUser = await ensureAuthUser({
     email: 'supervisor@limkokwing.edu.sl',
     password: DEMO_PASSWORD,
-    full_name: 'Ing. Hassan Kamara',
+    full_name: 'Ing. Sheku Dinneh Kamara',
     phone: '+232 77 334455',
     roles: ['supervisor'],
   });
