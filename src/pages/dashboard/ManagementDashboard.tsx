@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 import { ManagementStatistics } from '../../types/database';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { ProgressBar } from '../../components/ui/ProgressBar';
 import {
   BarChart,
   Bar,
@@ -12,15 +14,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from 'recharts';
-import {
-  GraduationCap,
-  Building2,
-  Award,
-  TrendingUp,
-  RefreshCw,
-  FileSpreadsheet,
-} from 'lucide-react';
+import { RefreshCw, FileSpreadsheet, Building2 } from 'lucide-react';
 
 export const ManagementDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -44,171 +43,288 @@ export const ManagementDashboard: React.FC = () => {
   }, [loadStats]);
 
   if (loading) {
-    return (
-      <div className="py-12 text-center text-xs text-slate-500">
-        Loading institutional statistics from PostgreSQL...
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
+
+  const totalPlacements = stats?.total_placements ?? 0;
+  const activeInternships = stats?.active_internships ?? 0;
+  const completedInternships = stats?.completed_internships ?? 0;
+  const otherPlacements = Math.max(0, totalPlacements - activeInternships - completedInternships);
+
+  const placementOutcomeData = [
+    { name: 'Active Internships', value: activeInternships, color: '#0d9488' },
+    { name: 'Completed', value: completedInternships, color: '#002B49' },
+    { name: 'Pending / Confirming', value: otherPlacements, color: '#94a3b8' },
+  ].filter((d) => d.value > 0);
+
+  const maxIndustryPlacements = Math.max(
+    1,
+    ...(stats?.by_industry || []).map((i) => i.placements)
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl font-bold text-[#002B49]">
-            University Management Dashboard
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Live institutional participation, placement distribution, completion rates, and
-            assessment summaries from PostgreSQL
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadStats}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Refresh
-          </Button>
-          <Link to="/app/management/reports">
-            <Button variant="primary" size="sm">
-              <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
-              Institutional Reports & Export
+      {/* Signature Institutional Executive Report Masthead */}
+      <div className="rounded-lg bg-[#002B49] leap-geo-grid-dark text-white p-5 sm:p-6 border border-[#001a2e]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-4">
+            <img
+              src="/limkokwing-logo.png"
+              alt="Limkokwing University Sierra Leone"
+              className="h-12 w-auto bg-white rounded p-1 object-contain shrink-0"
+            />
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-teal-300">
+                Office of Academic Affairs • Executive Briefing
+              </p>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mt-0.5">
+                University Management Analytics
+              </h2>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Live institutional participation, industry distribution, completion rates, and
+                academic assessment outcomes
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadStats}
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Refresh</span>
             </Button>
-          </Link>
+            <Link to="/app/management/reports">
+              <Button variant="secondary" size="sm">
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span>Reports & CSV Export</span>
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
           {error}
         </div>
       )}
 
-      {/* 4 Live Institutional KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 border-l-4 border-l-[#002B49]">
-          <p className="text-xs font-semibold text-slate-500 uppercase">
+      {/* Executive KPI Strip (Connected Segmented Grid, Tabular Numerals) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
+        <div className="bg-white p-5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Participating Students
           </p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-slate-900">
-              {stats?.total_participating_students ?? 0}
-            </span>
-            <GraduationCap className="h-6 w-6 text-slate-400" />
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">
-            {stats?.total_applications ?? 0} submitted applications
+          <p className="text-3xl font-bold text-[#002B49] mt-1.5 font-display tabular-nums">
+            {stats?.total_participating_students ?? 0}
           </p>
-        </Card>
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            {stats?.total_applications ?? 0} applications • {stats?.approved_applications ?? 0}{' '}
+            approved
+          </p>
+        </div>
 
-        <Card className="p-4 border-l-4 border-l-teal-600">
-          <p className="text-xs font-semibold text-teal-700 uppercase">Active Internships</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-teal-900">
-              {stats?.active_internships ?? 0}
-            </span>
-            <Building2 className="h-6 w-6 text-teal-600" />
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">
+        <div className="bg-white p-5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700">
+            Active Internships
+          </p>
+          <p className="text-3xl font-bold text-teal-800 mt-1.5 font-display tabular-nums">
+            {activeInternships}
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
             Across {stats?.partner_organizations ?? 0} partner organizations
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4 border-l-4 border-l-emerald-600">
-          <p className="text-xs font-semibold text-emerald-700 uppercase">Completion Rate</p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-emerald-900">
-              {stats?.completion_rate ?? 0}%
-            </span>
-            <Award className="h-6 w-6 text-emerald-600" />
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">
-            {stats?.completed_internships ?? 0} of {stats?.total_placements ?? 0} placements
-            completed
+        <div className="bg-white p-5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+            Completion Rate
           </p>
-        </Card>
+          <p className="text-3xl font-bold text-emerald-800 mt-1.5 font-display tabular-nums">
+            {stats?.completion_rate ?? 0}%
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            {completedInternships} of {totalPlacements} placements completed
+          </p>
+        </div>
 
-        <Card className="p-4 border-l-4 border-l-blue-600">
-          <p className="text-xs font-semibold text-blue-700 uppercase">
-            Mean Final Assessment
+        <div className="bg-white p-5">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Mean Assessment Score
           </p>
-          <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-black text-blue-900">
-              {stats?.average_final_score !== null && stats?.average_final_score !== undefined
-                ? `${stats.average_final_score}%`
-                : 'N/A'}
-            </span>
-            <TrendingUp className="h-6 w-6 text-blue-600" />
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">
+          <p className="text-3xl font-bold text-[#002B49] mt-1.5 font-display tabular-nums">
+            {stats?.average_final_score !== null && stats?.average_final_score !== undefined
+              ? `${stats.average_final_score}%`
+              : '—'}
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
             {stats?.total_verified_hours ?? 0} verified workplace hours
           </p>
-        </Card>
+        </div>
       </div>
 
-      {/* Charts & Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+      {/* Primary Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <Card className="lg:col-span-7">
           <CardHeader>
-            <CardTitle className="text-base">
-              Participation & Placements by Faculty
-            </CardTitle>
+            <div>
+              <CardTitle>Faculty Participation & Completion</CardTitle>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Enrolled students, active placements, and completed internships by faculty
+              </p>
+            </div>
           </CardHeader>
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={stats?.by_faculty || []}
-                margin={{ top: 10, right: 10, left: -15, bottom: 20 }}
+                margin={{ top: 10, right: 12, left: -16, bottom: 24 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="faculty" tick={{ fontSize: 10 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="students" name="Students" fill="#002B49" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="faculty"
+                  tick={{ fontSize: 10, fill: '#475569' }}
+                  interval={0}
+                  tickFormatter={(val: string) =>
+                    val.length > 22 ? `${val.slice(0, 20)}…` : val
+                  }
+                />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '8px',
+                    borderColor: '#cbd5e1',
+                    fontSize: '12px',
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                <Bar dataKey="students" name="Students" fill="#002B49" radius={[3, 3, 0, 0]} />
                 <Bar
                   dataKey="active_placements"
                   name="Active"
                   fill="#0d9488"
-                  radius={[4, 4, 0, 0]}
+                  radius={[3, 3, 0, 0]}
                 />
                 <Bar
                   dataKey="completed_placements"
                   name="Completed"
-                  fill="#10b981"
-                  radius={[4, 4, 0, 0]}
+                  fill="#059669"
+                  radius={[3, 3, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-5">
           <CardHeader>
-            <CardTitle className="text-base">Placement Distribution by Industry</CardTitle>
+            <div>
+              <CardTitle>Placement Outcomes Distribution</CardTitle>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Proportion of active, completed, and pending placements
+              </p>
+            </div>
           </CardHeader>
 
-          <div className="space-y-3 text-xs">
-            {(stats?.by_industry || []).map((ind) => (
-              <div
-                key={ind.industry}
-                className="rounded-xl border border-slate-200 p-3.5 flex items-center justify-between bg-slate-50/50"
-              >
-                <div>
-                  <p className="font-bold text-slate-900">{ind.industry}</p>
-                  <p className="text-[11px] text-slate-500">
-                    {ind.organizations} partner organization(s)
-                  </p>
+          {placementOutcomeData.length === 0 ? (
+            <p className="py-12 text-center text-xs text-slate-500">
+              No placement records available yet.
+            </p>
+          ) : (
+            <div className="h-52 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={placementOutcomeData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={76}
+                    paddingAngle={2}
+                  >
+                    {placementOutcomeData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '8px',
+                      borderColor: '#cbd5e1',
+                      fontSize: '12px',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div className="mt-2 pt-3 border-t border-slate-100 divide-y divide-slate-100 text-xs">
+            {placementOutcomeData.map((item) => (
+              <div key={item.name} className="py-1.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 rounded-xs shrink-0"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-slate-700 font-medium">{item.name}</span>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-[#002B49]">{ind.placements} placement(s)</p>
-                  <p className="text-[11px] text-teal-700">
-                    {ind.active} active • {ind.completed} completed
-                  </p>
-                </div>
+                <span className="font-mono font-bold text-slate-900 tabular-nums">
+                  {item.value}
+                </span>
               </div>
             ))}
           </div>
         </Card>
       </div>
+
+      {/* Industry Placement Coverage Matrix */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-teal-700" />
+            <span>Placement Distribution by Industry Sector</span>
+          </CardTitle>
+          <Link
+            to="/app/management/reports"
+            className="text-xs font-semibold text-teal-700 hover:text-[#002B49] hover:underline"
+          >
+            View Full Faculty & Assessment Table
+          </Link>
+        </CardHeader>
+
+        {(stats?.by_industry || []).length === 0 ? (
+          <p className="py-6 text-center text-xs text-slate-500">
+            No industry placement data recorded yet.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            {(stats?.by_industry || []).map((ind) => (
+              <div key={ind.industry} className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-2 text-xs">
+                  <span className="font-semibold text-slate-900">{ind.industry}</span>
+                  <span className="text-[11px] font-mono text-slate-600 tabular-nums shrink-0">
+                    {ind.placements} placement(s) • {ind.organizations} org(s)
+                  </span>
+                </div>
+                <ProgressBar
+                  value={ind.placements}
+                  max={maxIndustryPlacements}
+                  tone="navy"
+                />
+                <p className="text-[11px] text-slate-500 tabular-nums">
+                  {ind.active} active • {ind.completed} completed
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 };

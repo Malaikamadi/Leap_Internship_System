@@ -4,8 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ROLE_HOME_PATH } from '../../types/auth';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
+import { PasswordInput } from '../../components/ui/PasswordInput';
 import {
-  Lock,
   Mail,
   AlertCircle,
   CheckCircle2,
@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   KeyRound,
   UserPlus,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface LocationState {
@@ -115,213 +116,251 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Bar */}
+    <div className="min-h-screen bg-[#f7f9fb] flex flex-col">
+      <div className="h-1 w-full bg-[#002B49]" />
+
+      {/* Top Navigation Bar */}
       <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-[#002B49]"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-[#002B49] transition-colors"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5" />
             <span>Back to Home</span>
           </Link>
-          <span className="text-xs text-slate-500">
+          <span className="text-[11px] font-medium text-slate-500 hidden sm:inline">
             Limkokwing University of Creative Technology — Sierra Leone
           </span>
         </div>
       </div>
 
-      {/* Centered Single Login Card */}
-      <div className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-card p-6 sm:p-8">
-          <div className="flex flex-col items-center text-center pb-6 border-b border-slate-100">
-            <img
-              src="/limkokwing-logo.png"
-              alt="Limkokwing University Sierra Leone"
-              className="h-16 w-auto object-contain"
-            />
-            <h1 className="mt-4 text-xl font-bold text-[#002B49]">
-              {recoveryMode ? 'Password Recovery' : 'Sign In to Digital LEAP'}
-            </h1>
-            <p className="mt-1 text-xs text-slate-500">
-              {recoveryMode
-                ? 'Request a secure password reset link via Supabase Auth'
-                : 'Enter your university or host organization credentials'}
-            </p>
+      {/* Main Split Institutional Auth Layout */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 leap-geo-grid">
+        <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-12 rounded-lg border border-slate-200 bg-white shadow-card overflow-hidden leap-page-enter">
+          {/* Left Institutional Brand Panel */}
+          <div className="lg:col-span-5 bg-[#002B49] leap-geo-grid-dark text-white p-7 sm:p-8 flex flex-col justify-between relative">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/limkokwing-logo.png"
+                  alt="Limkokwing University Sierra Leone"
+                  className="h-12 w-auto bg-white rounded p-1 object-contain"
+                />
+                <div className="border-l border-white/20 pl-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-teal-300">
+                    Digital LEAP Portal
+                  </p>
+                  <p className="text-xs font-semibold text-white">
+                    Limkokwing Sierra Leone
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 pt-2">
+                <h2 className="text-xl font-bold leading-snug text-white">
+                  Unified Role-Based Authentication Gateway
+                </h2>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Sign in once to access your authorized workspace—Student, LEAP Coordinator,
+                  Academic Supervisor, Host Organization, University Management, or System
+                  Administrator.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-5 border-t border-white/15 space-y-2.5 text-[11px] text-slate-300">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-teal-300 shrink-0 mt-0.5" />
+                <span>
+                  Protected by Supabase Auth, PostgreSQL Row-Level Security, and active account
+                  status verification.
+                </span>
+              </div>
+              <p className="text-slate-400">Hill Station Campus • Freetown, Sierra Leone</p>
+            </div>
           </div>
 
-          {infoBanner && (
-            <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800 flex items-start gap-2 border border-emerald-200">
-              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{infoBanner}</span>
+          {/* Right Form Panel */}
+          <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
+            <div className="pb-5 border-b border-slate-100">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700">
+                {recoveryMode ? 'Account Recovery' : 'Portal Access'}
+              </p>
+              <h1 className="mt-1 text-xl sm:text-2xl font-bold text-[#002B49]">
+                {recoveryMode ? 'Password Recovery' : 'Sign In to Digital LEAP'}
+              </h1>
+              <p className="mt-1 text-xs text-slate-500">
+                {recoveryMode
+                  ? 'Request a secure password reset link via Supabase Auth'
+                  : 'Enter your university or partner host organization credentials'}
+              </p>
             </div>
-          )}
 
-          {(error || authError) && (
-            <div
-              role="alert"
-              className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-700 space-y-2 border border-rose-200"
-            >
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{error || authError}</span>
+            {infoBanner && (
+              <div className="mt-4 rounded-md bg-emerald-50 p-3 text-xs text-emerald-800 flex items-start gap-2 border border-emerald-200">
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                <span>{infoBanner}</span>
               </div>
-              {((error || authError || '').toLowerCase().includes('email not confirmed') ||
-                (error || authError || '').toLowerCase().includes('verification')) && (
-                <button
-                  type="button"
-                  disabled={resendingConfirm}
-                  onClick={handleResendConfirmation}
-                  className="text-[11px] font-bold text-teal-800 underline hover:text-[#002B49]"
-                >
-                  {resendingConfirm ? 'Sending verification email...' : 'Resend Verification Email'}
-                </button>
-              )}
-            </div>
-          )}
+            )}
 
-          {recoverySent && (
-            <div className="mt-4 rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800 flex items-start gap-2 border border-emerald-200">
-              <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{recoverySent}</span>
-            </div>
-          )}
-
-          {!recoveryMode ? (
-            <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
-              <div>
-                <label
-                  htmlFor="login-email"
-                  className="block text-xs font-semibold text-slate-700"
-                >
-                  Email Address
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <input
-                    id="login-email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@limkokwing.edu.sl"
-                    className="block w-full pl-9 pr-3 py-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002B49] focus:border-transparent text-slate-900"
-                  />
+            {(error || authError) && (
+              <div
+                role="alert"
+                className="mt-4 rounded-md bg-rose-50 p-3 text-xs text-rose-800 space-y-2 border border-rose-200"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" />
+                  <span>{error || authError}</span>
                 </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <label
-                    htmlFor="login-password"
-                    className="block text-xs font-semibold text-slate-700"
-                  >
-                    Password
-                  </label>
+                {((error || authError || '').toLowerCase().includes('email not confirmed') ||
+                  (error || authError || '').toLowerCase().includes('verification')) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setRecoveryMode(true);
-                      setError(null);
-                    }}
-                    className="text-[11px] font-medium text-teal-700 hover:underline"
+                    disabled={resendingConfirm}
+                    onClick={handleResendConfirmation}
+                    className="text-[11px] font-bold text-teal-800 underline hover:text-[#002B49]"
                   >
-                    Forgot Password?
+                    {resendingConfirm ? 'Sending verification email...' : 'Resend Verification Email'}
                   </button>
-                </div>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-4 w-4 text-slate-400" />
+                )}
+              </div>
+            )}
+
+            {recoverySent && (
+              <div className="mt-4 rounded-md bg-emerald-50 p-3 text-xs text-emerald-800 flex items-start gap-2 border border-emerald-200">
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                <span>{recoverySent}</span>
+              </div>
+            )}
+
+            {!recoveryMode ? (
+              <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+                <div>
+                  <label
+                    htmlFor="login-email"
+                    className="block text-xs font-semibold text-slate-700 mb-1.5"
+                  >
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-4 w-4 text-slate-400" />
+                    </div>
+                    <input
+                      id="login-email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@limkokwing.edu.sl"
+                      className="block w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#002B49] focus:ring-2 focus:ring-[#002B49]/15 transition-colors"
+                    />
                   </div>
-                  <input
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label
+                      htmlFor="login-password"
+                      className="block text-xs font-semibold text-slate-700"
+                    >
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecoveryMode(true);
+                        setError(null);
+                        setInfoBanner(null);
+                      }}
+                      className="text-[11px] font-semibold text-teal-700 hover:text-[#002B49] hover:underline"
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                  <PasswordInput
                     id="login-password"
-                    type="password"
                     autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className="block w-full pl-9 pr-3 py-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002B49] focus:border-transparent text-slate-900"
+                    placeholder="Enter your password"
                   />
                 </div>
-              </div>
 
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                className="w-full"
-                isLoading={submitting}
-              >
-                <span>Sign In</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </form>
-          ) : (
-            <form className="mt-5 space-y-4" onSubmit={handlePasswordRecovery}>
-              <div>
-                <label
-                  htmlFor="recovery-email"
-                  className="block text-xs font-semibold text-slate-700"
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="w-full py-2.5"
+                  isLoading={submitting}
                 >
-                  Registered Email Address
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-4 w-4 text-slate-400" />
+                  <span>Sign In</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </form>
+            ) : (
+              <form className="mt-5 space-y-4" onSubmit={handlePasswordRecovery}>
+                <div>
+                  <label
+                    htmlFor="recovery-email"
+                    className="block text-xs font-semibold text-slate-700 mb-1.5"
+                  >
+                    Registered Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-4 w-4 text-slate-400" />
+                    </div>
+                    <input
+                      id="recovery-email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@limkokwing.edu.sl"
+                      className="block w-full pl-9 pr-3 py-2.5 text-xs sm:text-sm border border-slate-300 rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#002B49] focus:ring-2 focus:ring-[#002B49]/15 transition-colors"
+                    />
                   </div>
-                  <input
-                    id="recovery-email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@limkokwing.edu.sl"
-                    className="block w-full pl-9 pr-3 py-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#002B49] focus:border-transparent text-slate-900"
-                  />
                 </div>
-              </div>
 
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                className="w-full"
-                isLoading={submitting}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  className="w-full py-2.5"
+                  isLoading={submitting}
+                >
+                  <KeyRound className="h-4 w-4" />
+                  <span>Send Recovery Instructions</span>
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryMode(false);
+                    setError(null);
+                    setRecoverySent(null);
+                  }}
+                  className="block w-full text-center text-xs font-semibold text-slate-600 hover:text-[#002B49]"
+                >
+                  Return to Sign In
+                </button>
+              </form>
+            )}
+
+            <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span className="text-slate-500">Undergraduate student without an account?</span>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-1.5 font-bold text-teal-700 hover:text-[#002B49] hover:underline"
               >
-                <KeyRound className="mr-2 h-4 w-4" />
-                <span>Send Recovery Instructions</span>
-              </Button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRecoveryMode(false);
-                  setError(null);
-                  setRecoverySent(null);
-                }}
-                className="block w-full text-center text-xs font-semibold text-slate-600 hover:text-[#002B49]"
-              >
-                Return to Sign In
-              </button>
-            </form>
-          )}
-
-          <div className="mt-6 pt-5 border-t border-slate-100 text-center space-y-2">
-            <p className="text-xs text-slate-600">
-              Undergraduate student without an account?
-            </p>
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-1.5 text-xs font-bold text-teal-700 hover:underline"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>Create Student Account</span>
-            </Link>
+                <UserPlus className="h-3.5 w-3.5" />
+                <span>Create Student Account</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -13,6 +13,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'http://127.0.0.1:54321';
 const SERVICE_ROLE_KEY =
@@ -75,7 +77,7 @@ async function ensureAuthUser({ email, password, full_name, phone, is_active = t
 }
 
 export async function seedDatabase({ resetPrimaryStudent = false } = {}) {
-  console.log('Seeding Digital LEAP Internship Management System...');
+  console.log(`Seeding Digital LEAP Internship Management System at ${SUPABASE_URL}...`);
 
   // 1. Provision the 6 official demo accounts + isolation test accounts
   const adminUser = await ensureAuthUser({
@@ -679,7 +681,11 @@ export async function seedDatabase({ resetPrimaryStudent = false } = {}) {
   };
 }
 
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
+const isMainModule =
+  process.argv[1] &&
+  import.meta.url.toLowerCase() === pathToFileURL(path.resolve(process.argv[1])).href.toLowerCase();
+
+if (isMainModule) {
   const resetPrimaryStudent = process.argv.includes('--reset-primary-student');
   seedDatabase({ resetPrimaryStudent }).catch((err) => {
     console.error('Seed failed:', err);

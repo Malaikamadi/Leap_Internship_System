@@ -32,17 +32,31 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'FINALIZED':
       case 'OPEN':
       case 'RESOLVED':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'ENROLLED':
+      case 'CLAIMED':
+        return {
+          wrap: 'bg-emerald-50 text-emerald-800 border-emerald-200/90',
+          dot: 'bg-emerald-600',
+        };
 
       case 'SUBMITTED':
       case 'UNDER_REVIEW':
       case 'AWAITING_CONFIRMATION':
       case 'IN_PROGRESS':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'UNCLAIMED':
+        return {
+          wrap: 'bg-blue-50 text-blue-800 border-blue-200/90',
+          dot: 'bg-blue-600',
+        };
 
       case 'CORRECTION_REQUIRED':
       case 'PENDING':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'PENDING_EMAIL_CONFIRMATION':
+      case 'ON_LEAVE':
+        return {
+          wrap: 'bg-amber-50 text-amber-800 border-amber-200/90',
+          dot: 'bg-amber-600',
+        };
 
       case 'REJECTED':
       case 'CANCELLED':
@@ -50,23 +64,33 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
       case 'FAILED':
       case 'INCOMPLETE':
       case 'CLOSED':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
+      case 'SUSPENDED':
+      case 'WITHDRAWN':
+        return {
+          wrap: 'bg-rose-50 text-rose-800 border-rose-200/90',
+          dot: 'bg-rose-600',
+        };
 
       case 'DRAFT':
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return {
+          wrap: 'bg-slate-100 text-slate-700 border-slate-200/90',
+          dot: 'bg-slate-500',
+        };
     }
   };
+
+  const styles = getStatusStyles(status);
 
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border uppercase tracking-wider',
-        getStatusStyles(status),
+        'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border uppercase tracking-wide whitespace-nowrap',
+        styles.wrap,
         className
       )}
     >
-      <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-current opacity-70" />
+      <span className={cn('w-1.5 h-1.5 mr-1.5 rounded-full shrink-0', styles.dot)} />
       {status.replace(/_/g, ' ')}
     </span>
   );

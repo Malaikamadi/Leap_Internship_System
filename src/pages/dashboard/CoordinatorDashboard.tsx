@@ -7,22 +7,26 @@ import {
   InternshipApplicationRow,
   ApplicationReviewRow,
   StudentProfileRow,
+  PlacementConcernRow,
 } from '../../types/database';
 import { UserProfile } from '../../types/auth';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { ActivityTimeline } from '../../components/ui/ActivityTimeline';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { formatDateTime } from '../../lib/utils';
 import {
   FileText,
+  AlertTriangle,
+  RefreshCw,
+  ArrowRight,
   Building2,
   Users,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  AlertTriangle,
-  ClipboardList,
-  RefreshCw,
+  ClipboardCheck,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const CoordinatorDashboard: React.FC = () => {
@@ -33,6 +37,7 @@ export const CoordinatorDashboard: React.FC = () => {
     Array<InternshipApplicationRow & { studentName: string; studentNumber: string; programme: string }>
   >([]);
   const [recentActivity, setRecentActivity] = useState<ApplicationReviewRow[]>([]);
+  const [openConcerns, setOpenConcerns] = useState<PlacementConcernRow[]>([]);
 
   const loadCoordinatorDashboard = useCallback(async () => {
     setLoading(true);
@@ -43,6 +48,7 @@ export const CoordinatorDashboard: React.FC = () => {
       { data: spRows },
       { data: profRows },
       { data: revRows },
+      { data: concernRows },
     ] = await Promise.all([
       supabase.rpc('get_coordinator_summary'),
       supabase
@@ -56,7 +62,13 @@ export const CoordinatorDashboard: React.FC = () => {
         .from('application_reviews')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(8),
+        .limit(7),
+      supabase
+        .from('placement_concerns')
+        .select('*')
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: false })
+        .limit(5),
     ]);
 
     setSummary((sumData as CoordinatorSummary) || null);
@@ -81,6 +93,7 @@ export const CoordinatorDashboard: React.FC = () => {
 
     setRecentApps(enrichedApps);
     setRecentActivity((revRows || []) as ApplicationReviewRow[]);
+    setOpenConcerns((concernRows || []) as PlacementConcernRow[]);
     setLoading(false);
   }, []);
 
@@ -89,185 +102,224 @@ export const CoordinatorDashboard: React.FC = () => {
   }, [loadCoordinatorDashboard]);
 
   if (loading) {
-    return (
-      <div className="py-12 text-center text-xs text-slate-500">
-        Loading coordinator dashboard from PostgreSQL...
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
+
+  const priorityTasks = [
+    {
+      label: 'Applications Awaiting Review',
+      count: summary?.pending_reviews ?? 0,
+      to: '/app/coordinator/applications',
+      icon: FileText,
+      urgent: (summary?.pending_reviews ?? 0) > 0,
+    },
+    {
+      label: 'Approved & Awaiting Placement',
+      count: summary?.awaiting_placement ?? 0,
+      to: '/app/coordinator/placements',
+      icon: Building2,
+      urgent: (summary?.awaiting_placement ?? 0) > 0,
+    },
+    {
+      label: 'Placements Missing Supervisor',
+      count: summary?.unassigned_supervisors ?? 0,
+      to: '/app/coordinator/placements',
+      icon: Users,
+      urgent: (summary?.unassigned_supervisors ?? 0) > 0,
+    },
+    {
+      label: 'Open Workplace Concerns',
+      count: openConcerns.length,
+      to: '/app/coordinator/monitoring',
+      icon: ShieldAlert,
+      urgent: openConcerns.length > 0,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl font-bold text-[#002B49]">LEAP Coordinator Dashboard</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Signed in as {user?.full_name} • Live PostgreSQL Coordination Metrics
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadCoordinatorDashboard}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Refresh
-          </Button>
-          <Link to="/app/coordinator/applications">
-            <Button variant="primary" size="sm">
-              Review Applications ({summary?.pending_reviews ?? 0})
+      <PageHeader
+        eyebrow="LEAP Coordination Office"
+        title="Coordinator Operations Desk"
+        description={`Signed in as ${user?.full_name} — prioritize pending eligibility reviews, placement assignments, supervisor allocations, and active internship oversight.`}
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={loadCoordinatorDashboard}>
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Refresh</span>
             </Button>
-          </Link>
-          <Link to="/app/coordinator/placements">
-            <Button variant="secondary" size="sm">
-              Assign Placements ({summary?.awaiting_placement ?? 0})
-            </Button>
-          </Link>
-        </div>
-      </div>
+            <Link to="/app/coordinator/applications">
+              <Button variant="primary" size="sm">
+                Review Queue ({summary?.pending_reviews ?? 0})
+              </Button>
+            </Link>
+            <Link to="/app/coordinator/placements">
+              <Button variant="secondary" size="sm">
+                Assign Placements ({summary?.awaiting_placement ?? 0})
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
-      {/* 8 Real PostgreSQL KPI Cards required by Section 6 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <Card className="p-4 border-l-4 border-l-[#002B49]">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-slate-500">
-              Total Applications
-            </span>
-            <FileText className="h-4 w-4 text-slate-400" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2">
+      {/* Unified Segmented Operational Pipeline Bar (replaces 8 separate floating KPI cards) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-slate-200 border border-slate-200 rounded-lg overflow-hidden shadow-subtle">
+        <div className="bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Total Applications
+          </p>
+          <p className="text-2xl font-bold text-[#002B49] mt-1 font-display tabular-nums">
             {summary?.total_applications ?? 0}
           </p>
-        </Card>
-
-        <Card className="p-4 border-l-4 border-l-amber-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-amber-700">
-              Pending Reviews
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            <span className="text-emerald-700 font-semibold">
+              {summary?.approved_applications ?? 0} approved
+            </span>{' '}
+            •{' '}
+            <span className="text-rose-700 font-semibold">
+              {summary?.rejected_applications ?? 0} rejected
             </span>
-            <Clock className="h-4 w-4 text-amber-600" />
-          </div>
-          <p className="text-2xl font-black text-amber-900 mt-2">
+          </p>
+        </div>
+
+        <div className="bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">
+            Pending Review Queue
+          </p>
+          <p className="text-2xl font-bold text-amber-900 mt-1 font-display tabular-nums">
             {summary?.pending_reviews ?? 0}
           </p>
-        </Card>
-
-        <Card className="p-4 border-l-4 border-l-emerald-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-emerald-700">
-              Approved Applications
-            </span>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          </div>
-          <p className="text-2xl font-black text-emerald-900 mt-2">
-            {summary?.approved_applications ?? 0}
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            {summary?.correction_required ?? 0} awaiting student revision
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4 border-l-4 border-l-rose-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-rose-700">
-              Rejected Applications
-            </span>
-            <XCircle className="h-4 w-4 text-rose-600" />
-          </div>
-          <p className="text-2xl font-black text-rose-900 mt-2">
-            {summary?.rejected_applications ?? 0}
+        <div className="bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700">
+            Active Internships
           </p>
-        </Card>
-
-        <Card className="p-4 border-l-4 border-l-blue-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-blue-700">
-              Awaiting Placement
-            </span>
-            <Building2 className="h-4 w-4 text-blue-600" />
-          </div>
-          <p className="text-2xl font-black text-blue-900 mt-2">
-            {summary?.awaiting_placement ?? 0}
-          </p>
-        </Card>
-
-        <Card className="p-4 border-l-4 border-l-teal-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-teal-700">
-              Active Placements
-            </span>
-            <Building2 className="h-4 w-4 text-teal-600" />
-          </div>
-          <p className="text-2xl font-black text-teal-900 mt-2">
+          <p className="text-2xl font-bold text-teal-900 mt-1 font-display tabular-nums">
             {summary?.active_placements ?? 0}
           </p>
-        </Card>
-
-        <Card className="p-4 border-l-4 border-l-indigo-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-indigo-700">
-              Unassigned Supervisors
-            </span>
-            <Users className="h-4 w-4 text-indigo-600" />
-          </div>
-          <p className="text-2xl font-black text-indigo-900 mt-2">
-            {summary?.unassigned_supervisors ?? 0}
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            {summary?.awaiting_confirmation ?? 0} awaiting host confirm •{' '}
+            {summary?.completed_placements ?? 0} completed
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-4 border-l-4 border-l-orange-500">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase text-orange-700">
-              Outstanding Reports
-            </span>
-            <ClipboardList className="h-4 w-4 text-orange-600" />
-          </div>
-          <p className="text-2xl font-black text-orange-900 mt-2">
+        <div className="bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Supervision & Reports
+          </p>
+          <p className="text-2xl font-bold text-[#002B49] mt-1 font-display tabular-nums">
             {summary?.outstanding_reports ?? 0}
           </p>
-        </Card>
+          <p className="text-[11px] text-slate-500 mt-1 tabular-nums">
+            Reports in review • {summary?.unassigned_supervisors ?? 0} unassigned placements
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Recent Student Applications</CardTitle>
+      {/* Priority Tasks Action Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {priorityTasks.map((task) => {
+          const Icon = task.icon;
+          return (
+            <Link
+              key={task.label}
+              to={task.to}
+              className={`group rounded-lg border p-3.5 transition-all flex items-center justify-between gap-3 ${
+                task.urgent
+                  ? 'bg-white border-slate-200 hover:border-[#002B49]/40 border-l-[3px] border-l-amber-500'
+                  : 'bg-white border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Icon
+                  className={`h-4 w-4 shrink-0 ${
+                    task.urgent ? 'text-amber-600' : 'text-slate-400'
+                  }`}
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-[#002B49]">
+                    {task.label}
+                  </p>
+                  <p className="text-[11px] text-slate-500 tabular-nums">
+                    {task.count} item(s)
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#002B49] group-hover:translate-x-0.5 transition-all shrink-0" />
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Main 12-Col Triage Table + Activity / Concerns Column */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <Card noPadding className="lg:col-span-8 overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+            <div>
+              <CardTitle>Applications Triage Queue</CardTitle>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Most recently updated student internship applications
+              </p>
+            </div>
             <Link
               to="/app/coordinator/applications"
-              className="text-xs font-semibold text-teal-700 hover:underline"
+              className="text-xs font-semibold text-teal-700 hover:text-[#002B49] hover:underline"
             >
               Open Full Queue
             </Link>
-          </CardHeader>
+          </div>
 
           {recentApps.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-500">
-              No student applications found in PostgreSQL.
-            </p>
+            <div className="p-6">
+              <EmptyState
+                icon={ClipboardCheck}
+                title="No Student Applications Found"
+                description="Submitted student internship applications will appear here for eligibility verification and review."
+              />
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                <thead className="bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <tr>
-                    <th className="px-3 py-2.5">Student</th>
-                    <th className="px-3 py-2.5">Academic Year</th>
-                    <th className="px-3 py-2.5">Industry Preference</th>
-                    <th className="px-3 py-2.5">Status</th>
-                    <th className="px-3 py-2.5 text-right">Action</th>
+                    <th className="px-4 py-2.5">Student</th>
+                    <th className="px-4 py-2.5">Preference</th>
+                    <th className="px-4 py-2.5">Year</th>
+                    <th className="px-4 py-2.5">Status</th>
+                    <th className="px-4 py-2.5 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {recentApps.map((app) => (
-                    <tr key={app.id} className="hover:bg-slate-50">
-                      <td className="px-3 py-3">
-                        <p className="font-bold text-slate-900">{app.studentName}</p>
+                    <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-slate-900">{app.studentName}</p>
                         <p className="text-[11px] text-slate-500">
-                          {app.studentNumber} • {app.programme}
+                          <span className="font-mono">{app.studentNumber}</span> • {app.programme}
                         </p>
                       </td>
-                      <td className="px-3 py-3 font-medium">{app.academic_year}</td>
-                      <td className="px-3 py-3">{app.preferred_industry || 'Any'}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-slate-800 truncate max-w-[180px]">
+                          {app.preferred_host_organization || app.preferred_industry || 'Unspecified'}
+                        </p>
+                        {app.preferred_host_organization && app.preferred_industry && (
+                          <p className="text-[11px] text-slate-400 truncate max-w-[180px]">
+                            {app.preferred_industry}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-slate-600">{app.academic_year}</td>
+                      <td className="px-4 py-3">
                         <StatusBadge status={app.status} />
                       </td>
-                      <td className="px-3 py-3 text-right">
+                      <td className="px-4 py-3 text-right">
                         <Link to="/app/coordinator/applications">
                           <Button variant="outline" size="sm">
-                            Inspect
+                            Review
                           </Button>
                         </Link>
                       </td>
@@ -279,37 +331,61 @@ export const CoordinatorDashboard: React.FC = () => {
           )}
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-teal-600" />
-              <span>Recent Decision Activity</span>
-            </CardTitle>
-          </CardHeader>
+        <div className="lg:col-span-4 space-y-6">
+          {/* Open Workplace Concerns */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <span>Outstanding Concerns ({openConcerns.length})</span>
+              </CardTitle>
+              <Link
+                to="/app/coordinator/monitoring"
+                className="text-xs font-semibold text-teal-700 hover:underline"
+              >
+                Monitor
+              </Link>
+            </CardHeader>
 
-          {recentActivity.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-500">
-              No recent decision activity.
-            </p>
-          ) : (
-            <div className="space-y-3 text-xs">
-              {recentActivity.map((act) => (
-                <div
-                  key={act.id}
-                  className="rounded-lg border border-slate-200 p-3 space-y-1 bg-slate-50/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <StatusBadge status={act.to_status} />
-                    <span className="text-[10px] text-slate-400">
-                      {formatDateTime(act.created_at)}
-                    </span>
-                  </div>
-                  {act.comment && <p className="text-slate-600">{act.comment}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+            {openConcerns.length === 0 ? (
+              <p className="py-4 text-xs text-slate-500">
+                No open workplace concerns currently reported.
+              </p>
+            ) : (
+              <ul className="divide-y divide-slate-100 text-xs">
+                {openConcerns.map((c) => (
+                  <li key={c.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900 truncate">{c.subject}</span>
+                      <StatusBadge status={c.severity} />
+                    </div>
+                    <p className="text-slate-600 line-clamp-2">{c.description}</p>
+                    <p className="text-[10px] font-mono text-slate-400">
+                      {formatDateTime(c.created_at)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          {/* Recent Coordinator Decisions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Decision Timeline</CardTitle>
+            </CardHeader>
+
+            <ActivityTimeline
+              items={recentActivity.map((act) => ({
+                id: act.id,
+                status: act.to_status,
+                body: act.comment,
+                timestamp: act.created_at,
+              }))}
+              emptyMessage="No recent application review decisions."
+            />
+          </Card>
+        </div>
       </div>
     </div>
   );
