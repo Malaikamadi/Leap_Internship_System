@@ -29,11 +29,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             {eyebrow}
           </p>
         )}
-        <h2 className="text-xl sm:text-2xl font-bold text-[#002B49] leading-tight tracking-tight">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-[#002B49] leading-tight tracking-tight">
           {title}
         </h2>
         {description && (
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-3xl leading-relaxed">
+          <p className="text-xs sm:text-sm font-medium text-slate-600 mt-1 max-w-3xl leading-relaxed">
             {description}
           </p>
         )}

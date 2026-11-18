@@ -30,9 +30,9 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const sizeStyles = {
-    sm: 'px-3 py-1.5 text-xs font-semibold rounded-md gap-1.5',
-    md: 'px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg gap-2',
-    lg: 'px-5 py-2.5 text-sm font-semibold rounded-lg gap-2',
+    sm: 'px-3 py-1.5 text-xs font-bold rounded-md gap-1.5',
+    md: 'px-4 py-2 text-xs sm:text-sm font-bold rounded-lg gap-2',
+    lg: 'px-5 py-2.5 text-sm font-bold rounded-lg gap-2',
   };
 
   return (

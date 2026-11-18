@@ -17,12 +17,24 @@
   }
 
   body {
-    @apply bg-[#f7f9fb] text-slate-900 font-sans antialiased min-h-screen;
+    @apply bg-[#f7f9fb] text-slate-900 font-sans font-medium antialiased min-h-screen;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  h1, h2, h3, h4 {
-    @apply font-display tracking-tight;
+  h1, h2 {
+    @apply font-display font-extrabold tracking-tight;
+  }
+
+  h3, h4 {
+    @apply font-display font-bold tracking-tight;
+  }
+
+  label, th {
+    @apply font-semibold;
+  }
+
+  p, td, dd, li {
+    @apply font-medium;
   }
 }
 

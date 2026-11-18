@@ -237,11 +237,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   title={isCollapsed ? item.name : undefined}
                   className={({ isActive }) =>
                     cn(
-                      'relative group flex items-center gap-3 rounded-md px-3 py-2 text-xs font-medium transition-all duration-150',
+                      'relative group flex items-center gap-3 rounded-md px-3 py-2 text-xs font-semibold transition-all duration-150',
                       isCollapsed && 'justify-center px-2',
                       isActive
-                        ? 'bg-white/[0.12] text-white font-semibold'
-                        : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
+                        ? 'bg-white/[0.14] text-white font-bold'
+                        : 'text-slate-200 hover:bg-white/[0.07] hover:text-white'
                     )
                   }
                 >
