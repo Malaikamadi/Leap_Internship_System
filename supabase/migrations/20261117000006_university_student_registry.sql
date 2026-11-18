@@ -959,3 +959,71 @@ revoke execute on function private.notify_role(public.app_role, text, text, text
 revoke execute on function private.notify_org(uuid, text, text, text, text) from public, anon, authenticated;
 revoke execute on function private.refresh_completion(uuid) from public, anon, authenticated;
 revoke execute on function private.activate_verified_student_account(uuid, text, text, text) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 9. Fix array_append usage in public.student_submit_application
+--    (PostgreSQL set search_path = '' resolves `text[] || unknown` as text[] || text[],
+--     causing SQLSTATE 22P02 when a newly registered student has missing profile fields.)
+-- ---------------------------------------------------------------------------
+create or replace function public.student_submit_application(p_application_id uuid)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  v_student uuid := private.current_student_id();
+  v_app public.internship_applications;
+  v_sp public.student_profiles;
+  v_phone text;
+  v_missing text[] := array[]::text[];
+begin
+  if v_student is null then
+    raise exception 'Only active students can submit applications' using errcode = '42501';
+  end if;
+  select * into v_app from public.internship_applications where id = p_application_id for update;
+  if not found or v_app.student_id <> v_student then
+    raise exception 'Application not found' using errcode = 'P0002';
+  end if;
+  if v_app.status not in ('DRAFT', 'CORRECTION_REQUIRED') then
+    raise exception 'Invalid transition: % -> SUBMITTED', v_app.status using errcode = 'P0001';
+  end if;
+
+  -- Required profile details
+  select * into v_sp from public.student_profiles where id = v_student;
+  select phone into v_phone from public.profiles where id = auth.uid();
+  if v_phone is null then v_missing := array_append(v_missing, 'profile: phone number'::text); end if;
+  if v_sp.emergency_contact is null then v_missing := array_append(v_missing, 'profile: emergency contact'::text); end if;
+  if v_sp.skills is null then v_missing := array_append(v_missing, 'profile: skills'::text); end if;
+
+  -- Required application fields
+  if v_app.preferred_industry is null then v_missing := array_append(v_missing, 'preferred industry'::text); end if;
+  if v_app.motivation is null or char_length(v_app.motivation) < 100 then
+    v_missing := array_append(v_missing, 'motivation statement (minimum 100 characters)'::text);
+  end if;
+  if v_app.relevant_skills is null then v_missing := array_append(v_missing, 'relevant skills'::text); end if;
+  if v_app.preferred_start_date is null or v_app.preferred_end_date is null then
+    v_missing := array_append(v_missing, 'preferred start and end dates'::text);
+  end if;
+
+  if coalesce(array_length(v_missing, 1), 0) > 0 then
+    raise exception 'Application incomplete. Missing: %', array_to_string(v_missing, '; ') using errcode = 'P0001';
+  end if;
+
+  update public.internship_applications
+  set status = 'SUBMITTED', submitted_at = now()
+  where id = p_application_id;
+
+  insert into public.application_reviews (application_id, actor_id, from_status, to_status, comment)
+  values (p_application_id, auth.uid(), v_app.status, 'SUBMITTED',
+          case when v_app.status = 'CORRECTION_REQUIRED' then 'Resubmitted after corrections' else 'Submitted for review' end);
+
+  perform private.log_audit('APPLICATION_SUBMITTED', 'internship_applications', p_application_id::text,
+                            jsonb_build_object('from', v_app.status));
+  perform private.notify(auth.uid(), 'application', 'Application submitted',
+    'Your LEAP application for ' || v_app.academic_year || ' was submitted and is awaiting coordinator review.',
+    '/app/student/application');
+  perform private.notify_role('coordinator', 'application', 'New application submitted',
+    coalesce(private.student_name(v_student), 'A student') || ' submitted a LEAP application for ' || v_app.academic_year || '.',
+    '/app/coordinator/applications');
+end;
+$$;
+

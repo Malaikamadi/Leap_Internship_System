@@ -349,7 +349,15 @@ describe('Digital LEAP System — Protected University Student Registry, RLS & 1
       .select('*');
     expect(initialApps || []).toHaveLength(0);
 
-    // Student creates DRAFT application and submits it (SUBMITTED)
+    // Student completes profile contact/skills details and creates DRAFT application
+    const { error: profUpdateErr } = await newStudentClient.rpc('update_my_profile', {
+      p_full_name: 'Mariama K. Conteh',
+      p_phone: '+232 76 778899',
+      p_skills: 'SQL, Business Process Modelling, ERP Systems, Data Analytics',
+      p_emergency_contact: 'Alhaji Conteh (+232 76 998877)',
+    });
+    expect(profUpdateErr).toBeNull();
+
     const { data: newAppId, error: newAppDraftErr } = await newStudentClient.rpc(
       'student_save_application',
       {
@@ -358,7 +366,7 @@ describe('Digital LEAP System — Protected University Student Registry, RLS & 1
         p_preferred_industry: 'Financial Information Systems',
         p_preferred_organization_id: null,
         p_motivation:
-          'Applying my Business Information Systems coursework to digital banking operations.',
+          'I am applying for the Digital LEAP internship to apply my Business Information Systems, SQL analytics, and enterprise process modelling coursework to live banking operations in Freetown.',
         p_relevant_skills: 'SQL, Business Process Modelling, ERP Systems',
         p_preferred_start_date: '2026-12-01',
         p_preferred_end_date: '2027-02-28',
