@@ -11,7 +11,9 @@ import {
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
-import { formatDateTime } from '../../lib/utils';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { ActivityTimeline } from '../../components/ui/ActivityTimeline';
+import { PageHeader } from '../../components/ui/PageHeader';
 import {
   FileText,
   Save,
@@ -186,31 +188,26 @@ export const StudentApplicationPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="py-12 text-center text-xs text-slate-500">
-        Loading application form...
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const latestCorrection = reviews.find((r) => r.to_status === 'CORRECTION_REQUIRED');
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl font-bold text-[#002B49]">LEAP Internship Application</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Draft, submit, and track your experiential learning placement application
-          </p>
-        </div>
-        {application && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-500">Current Status:</span>
-            <StatusBadge status={application.status} />
-          </div>
-        )}
-      </div>
+      <PageHeader
+        eyebrow="Student Internship Journey"
+        title="LEAP Internship Application"
+        description="Draft, submit, and track your experiential learning placement application through coordinator eligibility review."
+        actions={
+          application ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-500">Current Status:</span>
+              <StatusBadge status={application.status} />
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* Coordinator Correction Banner */}
       {application?.status === 'CORRECTION_REQUIRED' && latestCorrection && (
@@ -508,34 +505,21 @@ export const StudentApplicationPage: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <History className="h-4 w-4 text-teal-600" />
-                <span>Application Decision History</span>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-4 w-4 text-teal-700" />
+                <span>Application Review Timeline</span>
               </CardTitle>
             </CardHeader>
 
-            {reviews.length === 0 ? (
-              <p className="py-4 text-center text-xs text-slate-500">
-                No status transitions recorded yet.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {reviews.map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="rounded-lg border border-slate-200 p-3 text-xs space-y-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <StatusBadge status={rev.to_status} />
-                      <span className="text-[10px] text-slate-400">
-                        {formatDateTime(rev.created_at)}
-                      </span>
-                    </div>
-                    {rev.comment && <p className="text-slate-700 pt-1">{rev.comment}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
+            <ActivityTimeline
+              items={reviews.map((rev) => ({
+                id: rev.id,
+                status: rev.to_status,
+                body: rev.comment,
+                timestamp: rev.created_at,
+              }))}
+              emptyMessage="No status transitions recorded yet."
+            />
           </Card>
         </div>
       </div>

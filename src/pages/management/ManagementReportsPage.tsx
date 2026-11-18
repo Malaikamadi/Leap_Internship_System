@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { ManagementStatistics } from '../../types/database';
-import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Card, CardTitle } from '../../components/ui/Card';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Button } from '../../components/ui/Button';
+import { DashboardSkeleton } from '../../components/ui/Skeleton';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { formatDateTime } from '../../lib/utils';
 import { Download, BarChart3, Award } from 'lucide-react';
 
@@ -52,66 +54,74 @@ export const ManagementReportsPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="py-12 text-center text-xs text-slate-500">
-        Loading institutional reports...
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl font-bold text-[#002B49]">
-            Institutional Participation, Completion & Assessment Reports
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Aggregated academic summaries without unrestricted exposure of confidential student
-            records
-          </p>
+      {/* Signature Institutional Report Header */}
+      <div className="rounded-lg bg-white border border-slate-200 border-t-4 border-t-[#002B49] p-5 shadow-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-4">
+          <img
+            src="/limkokwing-logo.png"
+            alt="Limkokwing University Sierra Leone"
+            className="h-11 w-auto object-contain shrink-0"
+          />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-teal-700">
+              Limkokwing University of Creative Technology — Sierra Leone
+            </p>
+            <h2 className="text-lg sm:text-xl font-bold text-[#002B49] mt-0.5">
+              Institutional Participation, Completion & Assessment Report
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Aggregated academic governance summaries with zero exposure of confidential student
+              identity details
+            </p>
+          </div>
         </div>
-        <Button variant="primary" size="sm" onClick={handleDownloadCsv}>
-          <Download className="mr-1.5 h-4 w-4" />
-          Export Faculty Report (CSV)
+
+        <Button variant="primary" size="sm" onClick={handleDownloadCsv} className="shrink-0">
+          <Download className="h-4 w-4" />
+          <span>Export CSV</span>
         </Button>
       </div>
 
       {/* Faculty Summary Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-teal-600" />
+      <Card noPadding className="overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-teal-700" />
             <span>Faculty Participation & Completion Breakdown</span>
           </CardTitle>
-        </CardHeader>
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+            <thead className="bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <tr>
-                <th className="px-3 py-2.5">Faculty</th>
-                <th className="px-3 py-2.5">Enrolled Students</th>
-                <th className="px-3 py-2.5">Applications</th>
-                <th className="px-3 py-2.5">Active Placements</th>
-                <th className="px-3 py-2.5">Completed</th>
-                <th className="px-3 py-2.5">Mean Assessment Score</th>
+                <th className="px-4 py-2.5">Faculty</th>
+                <th className="px-4 py-2.5 text-right">Students</th>
+                <th className="px-4 py-2.5 text-right">Applications</th>
+                <th className="px-4 py-2.5 text-right">Active</th>
+                <th className="px-4 py-2.5 text-right">Completed</th>
+                <th className="px-4 py-2.5 text-right">Mean Score</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {(stats?.by_faculty || []).map((f) => (
-                <tr key={f.faculty} className="hover:bg-slate-50">
-                  <td className="px-3 py-3 font-bold text-slate-900">{f.faculty}</td>
-                  <td className="px-3 py-3">{f.students}</td>
-                  <td className="px-3 py-3">{f.applications}</td>
-                  <td className="px-3 py-3 text-teal-700 font-semibold">
+                <tr key={f.faculty} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="px-4 py-3 font-semibold text-slate-900">{f.faculty}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums">{f.students}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums">{f.applications}</td>
+                  <td className="px-4 py-3 text-right font-mono font-semibold text-teal-700 tabular-nums">
                     {f.active_placements}
                   </td>
-                  <td className="px-3 py-3 text-emerald-700 font-semibold">
+                  <td className="px-4 py-3 text-right font-mono font-semibold text-emerald-700 tabular-nums">
                     {f.completed_placements}
                   </td>
-                  <td className="px-3 py-3 font-bold">
-                    {f.avg_score !== null ? `${f.avg_score}%` : 'Pending'}
+                  <td className="px-4 py-3 text-right font-mono font-bold text-[#002B49] tabular-nums">
+                    {f.avg_score !== null ? `${f.avg_score}%` : '—'}
                   </td>
                 </tr>
               ))}
@@ -121,17 +131,17 @@ export const ManagementReportsPage: React.FC = () => {
       </Card>
 
       {/* Anonymized Assessment & Completion Summaries */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Award className="h-4 w-4 text-teal-600" />
+      <Card noPadding className="overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-4 w-4 text-teal-700" />
             <span>Permitted Assessment & Completion Summaries ({filteredSummaries.length})</span>
           </CardTitle>
           <select
             aria-label="Filter by faculty"
             value={facultyFilter}
             onChange={(e) => setFacultyFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-[#002B49]"
           >
             <option value="ALL">All Faculties</option>
             {faculties.map((f) => (
@@ -140,43 +150,51 @@ export const ManagementReportsPage: React.FC = () => {
               </option>
             ))}
           </select>
-        </CardHeader>
+        </div>
 
         {filteredSummaries.length === 0 ? (
-          <p className="py-6 text-center text-xs text-slate-500">
-            No completion records match the selected faculty.
-          </p>
+          <div className="p-6">
+            <EmptyState
+              icon={Award}
+              title="No Completion Records Match Filter"
+              description="Switch the faculty filter above to view permitted completion summaries across all faculties."
+            />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th className="px-3 py-2.5">Programme & Faculty</th>
-                  <th className="px-3 py-2.5">Host Organization</th>
-                  <th className="px-3 py-2.5">Accepted Reports</th>
-                  <th className="px-3 py-2.5">Verified Hours</th>
-                  <th className="px-3 py-2.5">Final Score</th>
-                  <th className="px-3 py-2.5">Status</th>
-                  <th className="px-3 py-2.5">Decided At</th>
+                  <th className="px-4 py-2.5">Programme & Faculty</th>
+                  <th className="px-4 py-2.5">Host Organization</th>
+                  <th className="px-4 py-2.5 text-right">Reports</th>
+                  <th className="px-4 py-2.5 text-right">Hours</th>
+                  <th className="px-4 py-2.5 text-right">Final Score</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5 text-right">Decided At</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredSummaries.map((s, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="px-3 py-3">
-                      <p className="font-bold text-slate-900">{s.programme}</p>
+                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-slate-900">{s.programme}</p>
                       <p className="text-[11px] text-slate-500">{s.faculty}</p>
                     </td>
-                    <td className="px-3 py-3 font-medium">{s.organization_name}</td>
-                    <td className="px-3 py-3">{s.accepted_reports}</td>
-                    <td className="px-3 py-3">{s.total_hours} hrs</td>
-                    <td className="px-3 py-3 font-bold">
-                      {s.final_score !== null ? `${s.final_score}%` : 'Pending'}
+                    <td className="px-4 py-3 font-medium text-slate-800">{s.organization_name}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
+                      {s.accepted_reports}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
+                      {s.total_hours} hrs
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-bold text-[#002B49] tabular-nums">
+                      {s.final_score !== null ? `${s.final_score}%` : '—'}
+                    </td>
+                    <td className="px-4 py-3">
                       <StatusBadge status={s.completion_status} />
                     </td>
-                    <td className="px-3 py-3 text-[11px] text-slate-500">
+                    <td className="px-4 py-3 text-right font-mono text-[11px] text-slate-500 whitespace-nowrap">
                       {formatDateTime(s.decided_at)}
                     </td>
                   </tr>
@@ -189,4 +207,3 @@ export const ManagementReportsPage: React.FC = () => {
     </div>
   );
 };
-

@@ -115,11 +115,12 @@ export const HostDashboard: React.FC = () => {
   );
   const openConcerns = concerns.filter((c) => c.status === 'OPEN');
 
-  const avgHostScore =
+  const avgHostRating =
     evaluations.length > 0
-      ? Math.round(
-          evaluations.reduce((sum, e) => sum + Number(e.overall_score || 0), 0) / evaluations.length
-        )
+      ? (
+          evaluations.reduce((sum, e) => sum + Number(e.overall_rating || 0), 0) /
+          evaluations.length
+        ).toFixed(2)
       : null;
 
   return (
@@ -268,7 +269,7 @@ export const HostDashboard: React.FC = () => {
                         <td className="px-4 py-3 tabular-nums">
                           {ev ? (
                             <span className="font-semibold text-emerald-700">
-                              Submitted ({ev.overall_score}%)
+                              Submitted ({Number(ev.overall_rating).toFixed(1)}/5)
                             </span>
                           ) : (
                             <span className="text-slate-500">Pending</span>
@@ -332,7 +333,7 @@ export const HostDashboard: React.FC = () => {
               <div className="py-2.5 flex items-center justify-between">
                 <dt className="text-slate-600">Mean Workplace Rating</dt>
                 <dd className="font-bold text-[#002B49] font-mono tabular-nums">
-                  {avgHostScore !== null ? `${avgHostScore}%` : '—'}
+                  {avgHostRating !== null ? `${avgHostRating} / 5.0` : '—'}
                 </dd>
               </div>
             </dl>
@@ -361,10 +362,10 @@ export const HostDashboard: React.FC = () => {
                 {concerns.map((c) => (
                   <li key={c.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-slate-900 truncate">{c.subject}</span>
+                      <span className="font-semibold text-slate-900">Workplace Concern</span>
                       <StatusBadge status={c.status} />
                     </div>
-                    <p className="text-slate-600 line-clamp-2">{c.description}</p>
+                    <p className="text-slate-600 line-clamp-2">{c.message}</p>
                     <p className="text-[10px] font-mono text-slate-400">
                       {formatDateTime(c.created_at)}
                     </p>

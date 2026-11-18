@@ -356,10 +356,10 @@ export const CoordinatorDashboard: React.FC = () => {
                 {openConcerns.map((c) => (
                   <li key={c.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-slate-900 truncate">{c.subject}</span>
-                      <StatusBadge status={c.severity} />
+                      <span className="font-semibold text-slate-900">Workplace Concern</span>
+                      <StatusBadge status={c.status} />
                     </div>
-                    <p className="text-slate-600 line-clamp-2">{c.description}</p>
+                    <p className="text-slate-600 line-clamp-2">{c.message}</p>
                     <p className="text-[10px] font-mono text-slate-400">
                       {formatDateTime(c.created_at)}
                     </p>
